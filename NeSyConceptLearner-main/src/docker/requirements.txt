@@ -12,3 +12,7 @@ seaborn
 captum
 rtpt
 h5py
+
+# Added for Sax
+aeon
+# datasets # Problematic package
