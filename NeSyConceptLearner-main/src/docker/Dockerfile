@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/pytorch:20.03-py3
+FROM nvcr.io/nvidia/pytorch:23.05-py3
 WORKDIR /workspace
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
