@@ -13,6 +13,7 @@ captum
 rtpt
 h5py
 
-# Added for Sax
+# Added for SAX
 aeon
-# datasets # Problematic package
+matplotlib
+datasets==3.0.2

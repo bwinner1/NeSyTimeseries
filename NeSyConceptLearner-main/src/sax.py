@@ -1,15 +1,17 @@
+import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 from aeon.transformations.collection.dictionary_based import SAX
 from aeon.datasets import load_unit_test
 from matplotlib import colormaps
 from sklearn.preprocessing import StandardScaler
-
+import datasets
 
 class SAXTransformer:
-    def __init__(self, n_segments=8, alphabet_size=4):
+    def __init__(self, n_segments=8, alphabet_size=4, name="example_dataset"):
         self.n_segments = n_segments
         self.alphabet_size = alphabet_size
+        self.name = name
         self.sax = SAX(self.n_segments, self.alphabet_size)
 
     def transform(self, dataset):
@@ -113,8 +115,11 @@ class SAXTransformer:
                     end += increment
 
         plt.tight_layout()
+        filename = "plot_" + self.name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".png"
+        plt.savefig(filename)
         plt.show()
         
+
 #################
 ### Testing Dataset
 #################
@@ -128,10 +133,11 @@ dataset = np.array([[[0, 1, 2, 3, 6]],
                     [[0, 1, 2, 3, 6]],
                     [[0, 6, 3, 2, 1]],])
 
-sax_test = SAXTransformer(n_segments=3, alphabet_size=6)
+sax_test = SAXTransformer(n_segments=3, alphabet_size=6, name="testdataset")
 dataset, dataset_sax, dataset_scaled = sax_test.transform(dataset)
 sax_test.drawGrid(dataset, dataset_scaled, dataset_sax, rows=2, columns=4)
 
+print("Testing dataset done")
 
 #################
 ### Aeon Initial Dataset
@@ -139,13 +145,10 @@ sax_test.drawGrid(dataset, dataset_scaled, dataset_sax, rows=2, columns=4)
 
 dataset, _ = load_unit_test()
 
-sax_aeon = SAXTransformer(n_segments=6, alphabet_size=8)
+sax_aeon = SAXTransformer(n_segments=6, alphabet_size=8, name="unit_test")
 dataset, dataset_sax, dataset_scaled = sax_aeon.transform(dataset)
 _, dataset_sax, _ = sax_aeon.transform(dataset)
 sax_aeon.drawGrid(dataset, dataset_scaled, dataset_sax) #rows=2, columns=4
-
-
-
 
 
 
@@ -156,11 +159,9 @@ from aeon.datasets import load_classification
 
 dataset, y, meta_data = load_classification("Wine", return_metadata=True)
 
-sax_wine = SAXTransformer(n_segments=6, alphabet_size=8)
+sax_wine = SAXTransformer(n_segments=6, alphabet_size=8, name="wine")
 dataset, dataset_sax, dataset_scaled = sax_wine.transform(dataset)
 sax_wine.drawGrid(dataset, dataset_scaled, dataset_sax) #rows=2, columns=4
-
-
 
 
 
@@ -178,4 +179,4 @@ X = dataset['train']
 
 print(X.shape)
 # (1154, 4)
-print(X[0])
+#print(X[0])
