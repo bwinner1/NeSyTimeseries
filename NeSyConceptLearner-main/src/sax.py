@@ -7,11 +7,15 @@ from matplotlib import colormaps
 from sklearn.preprocessing import StandardScaler
 import datasets
 
+
+#################
+### SAX       ###
+#################
+
 class SAXTransformer:
-    def __init__(self, n_segments=8, alphabet_size=4, name="example_dataset"):
+    def __init__(self, n_segments=8, alphabet_size=4):
         self.n_segments = n_segments
         self.alphabet_size = alphabet_size
-        self.name = name
         self.sax = SAX(self.n_segments, self.alphabet_size)
 
     def transform(self, dataset):
@@ -65,9 +69,9 @@ class SAXTransformer:
         print(f"{increments} per segment")
 
 
-    # Prints a grid of samples from a given dataset
+    # Print a grid of samples from a given dataset
     # rows and columns have to be greater than 1
-    def drawGrid(self, dataset, dataset_scaled, dataset_sax, rows=2, columns=3):
+    def drawGrid(self, dataset, dataset_scaled, dataset_sax, rows=2, columns=3, dataset_name="example_dataset"):
 
         # Define segments as pairs of (start, end) indices with constant values
         # segments = [(5, 20), (20, 30), (30, 50), (50, 70), (70, 80), (80, 95)]  # Segment boundaries
@@ -77,17 +81,12 @@ class SAXTransformer:
         assert time_steps % self.n_segments == 0, "Number of time frames has to be evenly dividable by the number of segments."
 
 
-        increment = int(time_steps / self.n_segments)
+        incincrementrement = int(time_steps / self.n_segments)
 
         self.printGeneralInfo(dataset, dataset_scaled, dataset_sax, increment, time_steps)
 
         # Define a Colormap
         get_color = colormaps['tab10']
-
-        # Define an alphabet with corresponding labels
-        alphabet = ['a', 'b', 'c', 'd']  # Alphabet labels
-        #segment_labels = [0,1,2,3,0,1]  # Alphabetic labels for each segment
-
 
         fig, grid = plt.subplots(rows, columns, figsize=(columns * 4, rows * 4))
         for i, row in enumerate(grid):
@@ -115,10 +114,15 @@ class SAXTransformer:
                     end += increment
 
         plt.tight_layout()
-        filename = "plot_" + self.name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".png"
+        filename = "plot_" + dataset_name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".png"
         plt.savefig(filename)
         plt.show()
         
+
+
+
+
+
 
 #################
 ### Testing Dataset
@@ -133,9 +137,9 @@ dataset = np.array([[[0, 1, 2, 3, 6]],
                     [[0, 1, 2, 3, 6]],
                     [[0, 6, 3, 2, 1]],])
 
-sax_test = SAXTransformer(n_segments=3, alphabet_size=6, name="testdataset")
+sax_test = SAXTransformer(n_segments=3, alphabet_size=6)
 dataset, dataset_sax, dataset_scaled = sax_test.transform(dataset)
-sax_test.drawGrid(dataset, dataset_scaled, dataset_sax, rows=2, columns=4)
+sax_test.drawGrid(dataset, dataset_scaled, dataset_sax, rows=2, columns=4, dataset_name="testdataset")
 
 print("Testing dataset done")
 
@@ -145,10 +149,13 @@ print("Testing dataset done")
 
 dataset, _ = load_unit_test()
 
-sax_aeon = SAXTransformer(n_segments=6, alphabet_size=8, name="unit_test")
+sax_aeon = SAXTransformer(n_segments=6, alphabet_size=8)
 dataset, dataset_sax, dataset_scaled = sax_aeon.transform(dataset)
-_, dataset_sax, _ = sax_aeon.transform(dataset)
-sax_aeon.drawGrid(dataset, dataset_scaled, dataset_sax) #rows=2, columns=4
+# Alternative:
+# sax_aeon.printGeneralInfo(dataset, dataset_scaled, dataset_sax, increment, time_steps)
+# dataset_sax = sax_aeon.transform(dataset)
+
+sax_aeon.drawGrid(dataset, dataset_scaled, dataset_sax, dataset_name="unit_test") #rows=2, columns=4
 
 
 
@@ -159,9 +166,9 @@ from aeon.datasets import load_classification
 
 dataset, y, meta_data = load_classification("Wine", return_metadata=True)
 
-sax_wine = SAXTransformer(n_segments=6, alphabet_size=8, name="wine")
+sax_wine = SAXTransformer(n_segments=6, alphabet_size=8)
 dataset, dataset_sax, dataset_scaled = sax_wine.transform(dataset)
-sax_wine.drawGrid(dataset, dataset_scaled, dataset_sax) #rows=2, columns=4
+sax_wine.drawGrid(dataset, dataset_scaled, dataset_sax, dataset_name="wine") #rows=2, columns=4
 
 
 

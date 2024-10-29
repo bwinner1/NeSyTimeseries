@@ -16,6 +16,8 @@ from args import get_args
 
 torch.autograd.set_detect_anomaly(True)
 
+from torch.utils.data import DataLoader
+
 os.environ["MKL_NUM_THREADS"] = "6"
 os.environ["NUMEXPR_NUM_THREADS"] = "6"
 os.environ["OMP_NUM_THREADS"] = "6"
@@ -114,6 +116,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
     preds_all = []
     labels_all = []
     for i, sample in enumerate(loader, start=epoch * iters_per_epoch):
+
         # input is either a set or an image
         imgs, target_set, img_class_ids, img_ids, _, table_expl = map(lambda x: x.cuda(), sample)
         img_class_ids = img_class_ids.long()
@@ -155,6 +158,8 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
 def train(args):
 
+#Clevr_hans
+"""
     if args.dataset == "clevr-hans-state":
         dataset_train = data.CLEVR_HANS_EXPL(
             args.data_dir, "train", lexi=True, conf_vers=args.conf_version
@@ -192,6 +197,60 @@ def train(args):
         num_workers=args.num_workers,
         shuffle=False,
     )
+"""
+
+# Example from RioT
+"""
+    def train_dataloader(self) -> DataLoader:
+
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
+            pin_memory=True,
+            collate_fn=ExplainedItem.classification_collate_fn,
+        )
+"""
+# TODO: Continue from here
+    if args.dataset == "p2s":
+        dataset_train = data.CLEVR_HANS_EXPL(
+            args.data_dir, "train", lexi=True, conf_vers=args.conf_version
+        )
+        dataset_val = data.CLEVR_HANS_EXPL(
+            args.data_dir, "val", lexi=True, conf_vers=args.conf_version
+        )
+        dataset_test = data.CLEVR_HANS_EXPL(
+            args.data_dir, "test", lexi=True, conf_vers=args.conf_version
+        )
+    else:
+        print("Wrong dataset specifier")
+        exit()
+
+    args.n_imgclasses = dataset_train.n_classes
+    args.class_weights = torch.ones(args.n_imgclasses)/args.n_imgclasses
+    args.classes = np.arange(args.n_imgclasses)
+    args.category_ids = dataset_train.category_ids
+
+    train_loader = DataLoader(
+        dataset_train,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        shuffle=True,
+    )
+    test_loader = DataLoader(
+        dataset_test,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        shuffle=False,
+    )
+    val_loader = DataLoader(
+        dataset_val,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        shuffle=False,
+    )
+
 
     net = model.NeSyConceptLearner(n_classes=args.n_imgclasses, n_slots=args.n_slots, n_iters=args.n_iters_slot_att,
                              n_attr=args.n_attr, n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden,

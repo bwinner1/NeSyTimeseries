@@ -4,6 +4,14 @@ import numpy as np
 import math
 from torch import nn
 
+import datetime
+import datasets
+import matplotlib.pyplot as plt
+from aeon.transformations.collection.dictionary_based import SAX
+from aeon.datasets import load_unit_test
+from matplotlib import colormaps
+from sklearn.preprocessing import StandardScaler
+
 class SlotAttention(nn.Module):
     """
     Implementation from https://github.com/lucidrains/slot-attention by lucidrains.
@@ -417,3 +425,112 @@ if __name__ == "__main__":
     net = NeSyConceptLearner(n_classes=3, n_slots=10, n_iters=3, n_attr=18, n_set_heads=4, set_transf_hidden=128,
                              category_ids = [3, 6, 8, 10, 17], device='cpu')
     output = net(x)
+
+
+class SAXTransformer:
+    def __init__(self, n_segments=8, alphabet_size=4, name="example_dataset"):
+        self.n_segments = n_segments
+        self.alphabet_size = alphabet_size
+        self.name = name
+        self.sax = SAX(self.n_segments, self.alphabet_size)
+
+    def transform(self, dataset):
+        # Make sure that number of time steps is dividable by n_segments
+        remainder = dataset.shape[2] % self.n_segments
+        if(remainder != 0):
+            fillers = self.n_segments - remainder
+            meansToFill = np.repeat(np.mean(dataset, axis=2), fillers, axis=1)
+            dataset = np.append(dataset[:,0,:], meansToFill, axis = 1) 
+            # append function automatically removes all 1s in array shape, add it manually:  
+            dataset = np.expand_dims(dataset, 1)
+            print(f"Added {self.getEntity(fillers, 'mean')}")
+            
+        # Create a StandardScaler object
+        scaler = StandardScaler()
+
+        # Fit the scaler on the training data (learn the mean and standard deviation)
+        # Transform both the training and test data
+        # Transposition on input and output added, as StandardScaler operates column-wise (e.g. calculates mean of first column)
+        dataset_scaled = scaler.fit_transform(dataset[:, 0, :].T).T
+
+        # Fit and transform the data
+        dataset_sax = self.sax.fit_transform(dataset_scaled)
+        
+        return dataset, dataset_sax, dataset_scaled
+
+    @staticmethod
+    def getEntity(number, name):
+        correctName = name + "s" if number > 1 else name
+        return f"{number} {correctName}"
+
+    # Print general information of dataset
+    def printGeneralInfo(self, dataset, dataset_scaled, dataset_sax, increment, time_steps):
+
+        #print("self.sax.get_fitted_params")
+        #print(self.sax.get_fitted_params())
+
+        print(f"dataset.shape: {dataset.shape}")
+        samples = self.getEntity(dataset.shape[0], 'sample')
+        dimensions = self.getEntity(dataset.shape[1], 'dimension')
+        time_steps = self.getEntity(dataset.shape[2], 'time step')
+
+        print(f"{samples}, {dimensions}, {time_steps}\n")
+
+        print(f"dataset_scaled.shape: {dataset_scaled.shape}")
+        print(f"dataset_sax.shape: {dataset_sax.shape}")
+
+        segments = self.getEntity(self.n_segments, "segment")
+        increments = self.getEntity(increment, "time step")
+        print(f"\n{segments}")
+        print(f"{increments} per segment")
+
+
+    # Print a grid of samples from a given dataset
+    # rows and columns have to be greater than 1
+    def drawGrid(self, dataset, dataset_scaled, dataset_sax, rows=2, columns=3):
+
+        # Define segments as pairs of (start, end) indices with constant values
+        # segments = [(5, 20), (20, 30), (30, 50), (50, 70), (70, 80), (80, 95)]  # Segment boundaries
+        # segment_values = [4, 6, 5, 7, 3, 8]  # Horizontal segment values for the plot (y-values)
+
+        time_steps = dataset.shape[2]
+        assert time_steps % self.n_segments == 0, "Number of time frames has to be evenly dividable by the number of segments."
+
+
+        increment = int(time_steps / self.n_segments)
+
+        self.printGeneralInfo(dataset, dataset_scaled, dataset_sax, increment, time_steps)
+
+        # Define a Colormap
+        get_color = colormaps['tab10']
+
+        fig, grid = plt.subplots(rows, columns, figsize=(columns * 4, rows * 4))
+        for i, row in enumerate(grid):
+            for j, ax in enumerate(row):
+                sample_index = i * columns + j
+                sample = dataset[sample_index][0]
+                sample_sax = dataset_sax[sample_index][0]
+
+                # Plot original time series
+                ax.plot(sample)
+                ax.set_title(f"Sample {sample_index + 1}")
+
+                start = 0
+                end = increment
+
+                for s in range(self.n_segments):
+                    s_value = np.mean(sample[start : end])
+
+                    # Horizontal segment values for the plot (y-values)
+                    color = get_color(sample_sax[s])
+                    ax.hlines(y=s_value, xmin=start, xmax=end-1, color=color, linewidth=3)  # Horizontal line
+
+                    # Update indices
+                    start = end
+                    end += increment
+
+        plt.tight_layout()
+        filename = "plot_" + self.name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".png"
+        plt.savefig(filename)
+        plt.show()
+        
