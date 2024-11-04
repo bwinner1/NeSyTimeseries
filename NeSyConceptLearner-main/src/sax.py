@@ -81,7 +81,7 @@ class SAXTransformer:
         assert time_steps % self.n_segments == 0, "Number of time frames has to be evenly dividable by the number of segments."
 
 
-        incincrementrement = int(time_steps / self.n_segments)
+        increment = int(time_steps / self.n_segments)
 
         self.printGeneralInfo(dataset, dataset_scaled, dataset_sax, increment, time_steps)
 

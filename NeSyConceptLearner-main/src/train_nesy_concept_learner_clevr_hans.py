@@ -212,20 +212,44 @@ def train(args):
             collate_fn=ExplainedItem.classification_collate_fn,
         )
 """
-# TODO: Continue from here
+
+# TODO: Change so that the dataset is passed on the same way, just with the output of SAX instead of the original data
     if args.dataset == "p2s":
-        dataset_train = data.CLEVR_HANS_EXPL(
-            args.data_dir, "train", lexi=True, conf_vers=args.conf_version
-        )
-        dataset_val = data.CLEVR_HANS_EXPL(
-            args.data_dir, "val", lexi=True, conf_vers=args.conf_version
-        )
-        dataset_test = data.CLEVR_HANS_EXPL(
-            args.data_dir, "test", lexi=True, conf_vers=args.conf_version
-        )
+        dataset = load_dataset('AIML-TUDA/P2S', 'Normal', download_mode='reuse_dataset_if_exists')
+        # dataset_train = dataset['train']
+        # dataset_test = dataset['test']
+        dataset_train = dataset['train']['dowel_deep_drawing_ow']
+        dataset_test = dataset['test']['dowel_deep_drawing_ow']
+
+        dataset_train = np.array(dataset_train)
+        dataset_test = np.array(dataset_test)
+
+        # Adding a third dimension, in the middle of the shape
+        #dataset_train = dataset_train.reshape(dataset_train.shape[0], 1, dataset_train.shape[1])
+        #dataset_test = dataset_test.reshape(dataset_test.shape[0], 1, dataset_test.shape[1])
+
+
     else:
         print("Wrong dataset specifier")
         exit()
+
+# TODO: Continue from here
+
+    ### TODO: Add SAX here, with an if statement for args
+
+    if args.concept == "sax":
+        sax = SAXTransformer(n_segments=args.n_segments, alphabet_size=args.alphabet_size, name="sax")
+
+
+
+    ### DataLoader gets the saxed dataset and labels
+
+    dataset['train']['dowel_deep_drawing_ow'] = dataset_train
+    dataset['test']['dowel_deep_drawing_ow'] = dataset_test
+
+    #Now you can give dataset to the DataLoader
+    
+
 
     args.n_imgclasses = dataset_train.n_classes
     args.class_weights = torch.ones(args.n_imgclasses)/args.n_imgclasses
@@ -244,13 +268,15 @@ def train(args):
         num_workers=args.num_workers,
         shuffle=False,
     )
+
+"""
     val_loader = DataLoader(
         dataset_val,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         shuffle=False,
     )
-
+"""
 
     net = model.NeSyConceptLearner(n_classes=args.n_imgclasses, n_slots=args.n_slots, n_iters=args.n_iters_slot_att,
                              n_attr=args.n_attr, n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden,
@@ -280,6 +306,8 @@ def train(args):
 
     # tensorboard writer
     writer = utils.create_writer(args)
+
+
 
     cur_best_val_loss = np.inf
     for epoch in range(args.epochs):

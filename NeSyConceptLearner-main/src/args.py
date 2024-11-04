@@ -61,6 +61,8 @@ def get_args():
     parser.add_argument('--n-attr', default=18, type=int,
                         help='number of attributes per object')
 
+    parser.add_argument('--concept', choices=["sax, tsfresh, vq-vae"])
+
     args = parser.parse_args()
 
     # hard set !!!!!!!!!!!!!!!!!!!!!!!!!
