@@ -390,7 +390,7 @@ class NeSyConceptLearner(nn.Module):
         :param set_transf_hidden: Integer, hidden dim of set transformer
         :param category_ids: List of Integers, specifying the starting ids of the attribute groups for the attribute
         prediction
-        :param device: String, eihter 'cpu' or 'cuda'
+        :param device: String, either 'cpu' or 'cuda'
         """
         super().__init__()
         self.device = device
@@ -421,6 +421,9 @@ class NeSyConceptLearner(nn.Module):
 
 
 if __name__ == "__main__":
+    print("\nCUDA version: -----------------------")
+    print("CUDA version used by PyTorch:", torch.version.cuda)
+    print("CUDA available:", torch.cuda.is_available())
     x = torch.rand(20, 3, 128, 128)
     net = NeSyConceptLearner(n_classes=3, n_slots=10, n_iters=3, n_attr=18, n_set_heads=4, set_transf_hidden=128,
                              category_ids = [3, 6, 8, 10, 17], device='cpu')
@@ -456,7 +459,7 @@ class SAXTransformer:
         # Fit and transform the data
         dataset_sax = self.sax.fit_transform(dataset_scaled)
         
-        return dataset, dataset_sax, dataset_scaled
+        return dataset_sax, dataset, dataset_scaled
 
     @staticmethod
     def getEntity(number, name):

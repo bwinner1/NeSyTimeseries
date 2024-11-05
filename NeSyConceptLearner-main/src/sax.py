@@ -40,7 +40,7 @@ class SAXTransformer:
         # Fit and transform the data
         dataset_sax = self.sax.fit_transform(dataset_scaled)
         
-        return dataset, dataset_sax, dataset_scaled
+        return dataset_sax, dataset, dataset_scaled
 
     @staticmethod
     def getEntity(number, name):
@@ -138,10 +138,12 @@ dataset = np.array([[[0, 1, 2, 3, 6]],
                     [[0, 6, 3, 2, 1]],])
 
 sax_test = SAXTransformer(n_segments=3, alphabet_size=6)
-dataset, dataset_sax, dataset_scaled = sax_test.transform(dataset)
+dataset_sax, dataset, dataset_scaled = sax_test.transform(dataset)
 sax_test.drawGrid(dataset, dataset_scaled, dataset_sax, rows=2, columns=4, dataset_name="testdataset")
 
 print("Testing dataset done")
+
+
 
 #################
 ### Aeon Initial Dataset
@@ -150,7 +152,7 @@ print("Testing dataset done")
 dataset, _ = load_unit_test()
 
 sax_aeon = SAXTransformer(n_segments=6, alphabet_size=8)
-dataset, dataset_sax, dataset_scaled = sax_aeon.transform(dataset)
+dataset_sax, dataset, dataset_scaled = sax_aeon.transform(dataset)
 # Alternative:
 # sax_aeon.printGeneralInfo(dataset, dataset_scaled, dataset_sax, increment, time_steps)
 # dataset_sax = sax_aeon.transform(dataset)
@@ -167,7 +169,7 @@ from aeon.datasets import load_classification
 dataset, y, meta_data = load_classification("Wine", return_metadata=True)
 
 sax_wine = SAXTransformer(n_segments=6, alphabet_size=8)
-dataset, dataset_sax, dataset_scaled = sax_wine.transform(dataset)
+dataset_sax, dataset, dataset_scaled = sax_wine.transform(dataset)
 sax_wine.drawGrid(dataset, dataset_scaled, dataset_sax, dataset_name="wine") #rows=2, columns=4
 
 

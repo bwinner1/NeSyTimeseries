@@ -61,7 +61,8 @@ def get_args():
     parser.add_argument('--n-attr', default=18, type=int,
                         help='number of attributes per object')
 
-    parser.add_argument('--concept', choices=["sax, tsfresh, vq-vae"])
+    parser.add_argument('--concept', choices=["sax", "tsfresh", "vq-vae"],
+                        help='concept that should be applied to times series' )
 
     args = parser.parse_args()
 
