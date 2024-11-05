@@ -179,7 +179,7 @@ sax_wine.drawGrid(dataset, dataset_scaled, dataset_sax, dataset_name="wine") #ro
 #################
 
 from datasets import load_dataset
-dataset = load_dataset('AIML-TUDA/P2S', 'Decoy', download_mode='reuse_dataset_if_exists')
+dataset = load_dataset('AIML-TUDA/P2S', 'Normal', download_mode='reuse_dataset_if_exists')
 
 # Print the first example in the dataset
 # print(dataset['train'][0])  # Use 'train', 'test', etc. as needed

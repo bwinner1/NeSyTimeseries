@@ -16,4 +16,7 @@ h5py
 # Added for SAX
 aeon
 matplotlib
+huggingface-hub
+attrs==23.1.0
 datasets==3.0.2
+
