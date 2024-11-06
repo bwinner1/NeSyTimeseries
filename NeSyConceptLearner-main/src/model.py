@@ -371,70 +371,11 @@ class SetTransformer(nn.Module):
         x = self.dec(x)
         return x.squeeze()
 
-############
-# NeSyConceptLearner #
-############
-class NeSyConceptLearner(nn.Module):
-    """
-    The Neuro-Symbolic Concept Learner of Stammer et al. 2021 based on Slot Attention and Set Transformer.
-    """
-    def __init__(self, n_classes, n_slots=1, n_iters=3, n_attr=18, n_set_heads=4, set_transf_hidden=128,
-                 category_ids=[3, 6, 8, 10, 17], device='cuda'):
-        """
-
-        :param n_classes: Integer, number of classes
-        :param n_slots: Integer, number of slots for slot attention module
-        :param n_iters: Integer, number of attention iterations for slot attentions
-        :param n_attr: Integer, number of attributes per object
-        :param n_set_heads: Integer, number of attention heads for set transformer
-        :param set_transf_hidden: Integer, hidden dim of set transformer
-        :param category_ids: List of Integers, specifying the starting ids of the attribute groups for the attribute
-        prediction
-        :param device: String, either 'cpu' or 'cuda'
-        """
-        super().__init__()
-        self.device = device
-        # Concept Embedding Module
-        self.img2state_net = SlotAttention_model(n_slots, n_iters, n_attr, encoder_hidden_channels=64,
-                                                 attention_hidden_channels=128, category_ids=category_ids,
-                                                 device=device)
-        # Reasoning module
-        self.set_cls = SetTransformer(dim_input=n_attr, dim_hidden=set_transf_hidden, num_heads=n_set_heads,
-                                      dim_output=n_classes, ln=True)
-
-    def forward(self, img):
-        """
-        Receives an image, passes it through the concept embedding module and the reasoning module. For simplicity we
-        here binarize the continuous output of the concept embedding module before passing it to the reasoning module.
-        The ouputs of both modules are returned, i.e. the final class prediction and the latent symbolic representation.
-        :param img: 4D Tensor [batch, channels, width, height]
-        :return: Tuple of outputs of both modules, [batch, n_classes] classification/ reasoning module output,
-        [batch, n_slots, n_attr] concept embedding module output/ symbolic representation
-        """
-        attrs = self.img2state_net(img)
-        # binarize slot attention output, apart from coordinate output
-        attrs_trans = self.img2state_net._transform_attrs(attrs)
-        # run through classifier via set transformer
-        cls = self.set_cls(attrs_trans)
-
-        return cls.squeeze(), attrs_trans
-
-
-if __name__ == "__main__":
-    print("\nCUDA version: -----------------------")
-    print("CUDA version used by PyTorch:", torch.version.cuda)
-    print("CUDA available:", torch.cuda.is_available())
-    x = torch.rand(20, 3, 128, 128)
-    net = NeSyConceptLearner(n_classes=3, n_slots=10, n_iters=3, n_attr=18, n_set_heads=4, set_transf_hidden=128,
-                             category_ids = [3, 6, 8, 10, 17], device='cpu')
-    output = net(x)
-
 
 class SAXTransformer:
-    def __init__(self, n_segments=8, alphabet_size=4, name="example_dataset"):
+    def __init__(self, n_segments=8, alphabet_size=4):
         self.n_segments = n_segments
         self.alphabet_size = alphabet_size
-        self.name = name
         self.sax = SAX(self.n_segments, self.alphabet_size)
 
     def transform(self, dataset):
@@ -490,7 +431,7 @@ class SAXTransformer:
 
     # Print a grid of samples from a given dataset
     # rows and columns have to be greater than 1
-    def drawGrid(self, dataset, dataset_scaled, dataset_sax, rows=2, columns=3):
+    def drawGrid(self, dataset, dataset_scaled, dataset_sax, rows=2, columns=3, dataset_name="example_dataset"):
 
         # Define segments as pairs of (start, end) indices with constant values
         # segments = [(5, 20), (20, 30), (30, 50), (50, 70), (70, 80), (80, 95)]  # Segment boundaries
@@ -533,7 +474,86 @@ class SAXTransformer:
                     end += increment
 
         plt.tight_layout()
-        filename = "plot_" + self.name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".png"
+        filename = "plot_" + dataset_name + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S") + ".png"
         plt.savefig(filename)
         plt.show()
-        
+    
+
+
+
+############
+# NeSyConceptLearner #
+############
+class NeSyConceptLearner(nn.Module):
+    """
+    The Neuro-Symbolic Concept Learner of Stammer et al. 2021 based on Slot Attention and Set Transformer.
+    """
+    def __init__(self, n_classes, n_slots=1, n_iters=3, n_attr=18, n_set_heads=4, set_transf_hidden=128,
+                 category_ids=[3, 6, 8, 10, 17], device='cuda'):
+        """
+
+        :param n_classes: Integer, number of classes
+        :param n_slots: Integer, number of slots for slot attention module
+        :param n_iters: Integer, number of attention iterations for slot attentions
+        :param n_attr: Integer, number of attributes per object
+        :param n_set_heads: Integer, number of attention heads for set transformer
+        :param set_transf_hidden: Integer, hidden dim of set transformer
+        :param category_ids: List of Integers, specifying the starting ids of the attribute groups for the attribute
+        prediction
+        :param device: String, either 'cpu' or 'cuda'
+        """
+        super().__init__()
+        self.device = device
+        # Concept Embedding Module
+        """ self.img2state_net = SlotAttention_model(n_slots, n_iters, n_attr, encoder_hidden_channels=64,
+                                                 attention_hidden_channels=128, category_ids=category_ids,
+                                                 device=device) """
+        # Reasoning module
+        self.set_cls = SetTransformer(dim_input=n_attr, dim_hidden=set_transf_hidden, num_heads=n_set_heads,
+                                      dim_output=n_classes, ln=True)
+
+    def forward(self, attrs):
+        #TODO: modify method comment
+        """
+        Receives an image, passes it through the concept embedding module and the reasoning module. For simplicity we
+        here binarize the continuous output of the concept embedding module before passing it to the reasoning module.
+        The ouputs of both modules are returned, i.e. the final class prediction and the latent symbolic representation.
+        :param img: 4D Tensor [batch, channels, width, height]
+        :return: Tuple of outputs of both modules, [batch, n_classes] classification/ reasoning module output,
+        [batch, n_slots, n_attr] concept embedding module output/ symbolic representation
+        """
+        #old version:
+        """     
+        attrs = self.img2state_net(img)
+        binarize slot attention output, apart from coordinate output
+        attrs_trans = self.img2state_net._transform_attrs(attrs)
+        run through classifier via set transformer 
+        """
+        attrs_trans = torch.tensor(attrs, dtype=torch.float32).to(self.device)
+        #print(f"attrs_trans: {attrs_trans}")
+        #print(f"attrs_trans.shape: {attrs_trans.shape}")
+        cls = self.set_cls(attrs_trans)
+        return cls.squeeze(), attrs
+
+
+if __name__ == "__main__":
+    print("CUDA version used by PyTorch:", torch.version.cuda)
+    print("CUDA available:", torch.cuda.is_available())
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    #x = torch.rand(20, 3, 128, 128).to(device)
+    dataset, _ = load_unit_test()
+
+    sax_aeon = SAXTransformer(n_segments=6, alphabet_size=4)
+    #dataset_sax, dataset, dataset_scaled = sax_aeon.transform(dataset)
+    #sax_aeon.drawGrid(dataset, dataset_scaled, dataset_sax, dataset_name="unit_test") #rows=2, columns=4
+
+    x, _, _ = sax_aeon.transform(dataset)
+    
+    net = NeSyConceptLearner(n_classes=4, n_slots=10, n_iters=3, n_attr=6, n_set_heads=4, set_transf_hidden=128,
+                             category_ids = [3, 6, 8, 10, 17], device=device).to(device)
+    output = net(x)
+    print(output)
+
+
+

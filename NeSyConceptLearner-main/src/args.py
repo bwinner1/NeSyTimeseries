@@ -61,8 +61,14 @@ def get_args():
     parser.add_argument('--n-attr', default=18, type=int,
                         help='number of attributes per object')
 
+    # SAX params
     parser.add_argument('--concept', choices=["sax", "tsfresh", "vq-vae"],
                         help='concept that should be applied to times series' )
+    parser.add_argument('--n-segments', default=8, type=int,
+                        help='number of sax segments')
+    parser.add_argument('--alphabet-size', default=4, type=int,
+                        help='alphabet size for sax')
+
 
     args = parser.parse_args()
 

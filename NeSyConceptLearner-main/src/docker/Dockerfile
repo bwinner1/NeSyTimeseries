@@ -1,6 +1,7 @@
 FROM nvcr.io/nvidia/pytorch:23.05-py3
 WORKDIR /workspace
 COPY requirements.txt requirements.txt
+ENV AEON_DEPRECATION_WARNING=False
 RUN pip install -r requirements.txt
 RUN ["apt-get", "update"]
 RUN ["apt-get", "install", "-y", "zsh"]

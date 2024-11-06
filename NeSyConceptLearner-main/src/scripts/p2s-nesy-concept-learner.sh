@@ -19,8 +19,8 @@ MODEL="ts-concept-learner-$NUM"
 # CLEVR-Hans3
 
 # For gpu
-CUDA_VISIBLE_DEVICES=$DEVICE python train_cl_p2s.py --concept sax --n_segments 8 --alphabet_size 4\
---epochs 50 --name $MODEL --lr 0.0001 --batch-size 128 --n-slots 10 --n-iters-slot-att 3 --n-attr 18 --seed 0 \
+CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --concept sax --n-segments 8 --alphabet-size 4 \
+--epochs 50 --name $MODEL --lr 0.0001 --batch-size 128 --n-attr 18 --seed 0 \
 --mode train
 
 # For gpu (old version)

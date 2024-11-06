@@ -205,9 +205,10 @@ def train(args):
     args.class_weights = torch.ones(args.n_classes)/args.n_classes
     args.classes = np.arange(args.n_classes)
 
-    if(args.concept == "sax"):
+    #Probably irrelevant
+    #if(args.concept == "sax"):
         #All values in SAX are means, therefore there is only one category, starting at index 0.
-        args.category_ids = [0]
+    #    args.category_ids = [0]
     #elif args.concept == "tsfresh":
         # add a staring index for each category type, f.e. means, general data (variance, overall mean, etc.)
     #elif args.concept == "vq-vae":
