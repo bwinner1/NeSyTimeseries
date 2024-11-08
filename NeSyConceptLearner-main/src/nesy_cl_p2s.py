@@ -17,10 +17,13 @@ from args import get_args
 torch.autograd.set_detect_anomaly(True)
 
 from torch.utils.data import DataLoader
+from datasets import load_dataset
+from datasets import DatasetDict
 
 os.environ["MKL_NUM_THREADS"] = "6"
 os.environ["NUMEXPR_NUM_THREADS"] = "6"
 os.environ["OMP_NUM_THREADS"] = "6"
+os.environ["AEON_DEPRECATION_WARNING"] = str(False)
 torch.set_num_threads(6)
 
 # -----------------------------------------
@@ -160,24 +163,27 @@ def train(args):
     print("running train method...")
     if args.dataset == "p2s":
         dataset = load_dataset('AIML-TUDA/P2S', 'Normal', download_mode='reuse_dataset_if_exists')
-        dataset_train = dataset['train']['dowel_deep_drawing_ow']
-        dataset_test = dataset['test']['dowel_deep_drawing_ow']
 
-        dataset_train = np.array(dataset_train)
-        dataset_test = np.array(dataset_test)
+        # Extracting the time series data from the train and test dataset 
+        ts_train = dataset['train']['dowel_deep_drawing_ow']
+        ts_test = dataset['test']['dowel_deep_drawing_ow']
+
+        ts_train = np.array(ts_train)
+        ts_test = np.array(ts_test)
 
         # Adding a third dimension, in the middle of the shape, as needed for SAX
-        dataset_train = dataset_train.reshape(dataset_train.shape[0], 1, dataset_train.shape[1])
-        dataset_test = dataset_test.reshape(dataset_test.shape[0], 1, dataset_test.shape[1])
+        ts_train = ts_train.reshape(ts_train.shape[0], 1, ts_train.shape[1])
+        ts_test = ts_test.reshape(ts_test.shape[0], 1, ts_test.shape[1])
     else:
         print("Wrong dataset specifier")
         exit()
 
 
+
     if args.concept == "sax":
-        sax = SAXTransformer(n_segments=args.n_segments, alphabet_size=args.alphabet_size, name="sax")
-        dataset_train, _, _ = sax.transform(dataset_train)
-        dataset_test, _, _ = sax.transform(dataset_test)
+        sax = model.SAXTransformer(n_segments=args.n_segments, alphabet_size=args.alphabet_size)
+        concepts_train, _, _ = sax.transform(ts_train)
+        concepts_test, _, _ = sax.transform(ts_test)
     ### TODO: Add other cases
     #elif args.concept == "tsfresh":
     #elif args.concept == "vq-vae":
@@ -185,8 +191,32 @@ def train(args):
         print("Wrong concept specifier")
         exit()
 
-    dataset['train']['dowel_deep_drawing_ow'] = dataset_train
-    dataset['test']['dowel_deep_drawing_ow'] = dataset_test
+
+    # TODO: Delete this two lines, as a dataset object can't be changed
+    #dataset['train']['dowel_deep_drawing_ow'] = concepts_train
+    #dataset['test']['dowel_deep_drawing_ow'] = concepts_test
+
+    ## TODO: Make sure that the added lines here actually work:
+
+    # For all samples in the training dataset, ignore the current value and overwrite it with the value from dataset_train
+    dataset_train = dataset['train'].map(
+        lambda _, idx: {'dowel_deep_drawing_ow': concepts_train[idx]},
+        with_indices=True,  # Allows access to the row index
+        batched=False       # Process one example at a time
+    )
+
+    # Overwrite the dataset with the concept dataset
+    dataset_test = dataset['test'].map(
+        lambda _, idx: {'dowel_deep_drawing_ow': concepts_test[idx]},
+        with_indices=True,
+        batched=False
+    )
+
+    # Update the dataset with the new train and test splits
+    dataset = DatasetDict({
+        'train': dataset_train,
+        'test': dataset_test
+    })
 
     train_loader = DataLoader(
         dataset['train'],
@@ -201,7 +231,8 @@ def train(args):
         shuffle=False,
     )
 
-    args.n_classes = args.alphabet_size
+    #n_classes is 2, as there are two possible outcomes for a sample, either defect or not 
+    args.n_classes = 2
     args.class_weights = torch.ones(args.n_classes)/args.n_classes
     args.classes = np.arange(args.n_classes)
 
@@ -214,9 +245,20 @@ def train(args):
     #elif args.concept == "vq-vae":
 
 
-    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_slots=args.n_slots, n_iters=args.n_iters_slot_att,
-                             n_attr=args.n_attr, n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden,
-                             category_ids=args.category_ids, device=args.device)
+    #net = model.NeSyConceptLearner(n_classes=args.n_classes, n_slots=args.n_slots, n_iters=args.n_iters_slot_att,
+     #                        n_attr=args.n_attr, n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden,
+      #                       category_ids=args.category_ids, device=args.device)
+    
+    
+### TODO: Continue from here
+### Current problem: device is not defined
+    net = model.NeSyConceptLearner(n_classes=2, n_slots=10, n_iters=3, n_attr=args.n_segments, n_set_heads=args.alphabet_size, #
+                                   set_transf_hidden=128, device=device).to(device)
+
+    # from other file
+      
+    #net = NeSyConceptLearner(n_classes=2, n_slots=10, n_iters=3, n_attr=6, n_set_heads=4, set_transf_hidden=128,
+    #                         category_ids = [3, 6, 8, 10, 17], device=device).to(device)
 
     # load pretrained concept embedding module
     log = torch.load("logs/slot-attention-clevr-state-3_final", map_location=torch.device(args.device))

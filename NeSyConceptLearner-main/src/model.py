@@ -488,8 +488,12 @@ class NeSyConceptLearner(nn.Module):
     """
     The Neuro-Symbolic Concept Learner of Stammer et al. 2021 based on Slot Attention and Set Transformer.
     """
+    def __init__(self, n_classes, n_attr=18, n_set_heads=4, set_transf_hidden=128,
+                 device='cuda'):
+        """ 
+        #old version
     def __init__(self, n_classes, n_slots=1, n_iters=3, n_attr=18, n_set_heads=4, set_transf_hidden=128,
-                 category_ids=[3, 6, 8, 10, 17], device='cuda'):
+                 category_ids=[3, 6, 8, 10, 17], device='cuda'): """
         """
 
         :param n_classes: Integer, number of classes
@@ -544,14 +548,21 @@ if __name__ == "__main__":
     #x = torch.rand(20, 3, 128, 128).to(device)
     dataset, _ = load_unit_test()
 
-    sax_aeon = SAXTransformer(n_segments=6, alphabet_size=4)
+    n_segments = 6
+    alphabet_size = 4
+
+    sax_aeon = SAXTransformer(n_segments=n_segments, alphabet_size=alphabet_size)
     #dataset_sax, dataset, dataset_scaled = sax_aeon.transform(dataset)
     #sax_aeon.drawGrid(dataset, dataset_scaled, dataset_sax, dataset_name="unit_test") #rows=2, columns=4
 
     x, _, _ = sax_aeon.transform(dataset)
     
-    net = NeSyConceptLearner(n_classes=4, n_slots=10, n_iters=3, n_attr=6, n_set_heads=4, set_transf_hidden=128,
-                             category_ids = [3, 6, 8, 10, 17], device=device).to(device)
+    #n_classes is 2, as there are two possible outcomes for a sample, either defect or not 
+
+    net = NeSyConceptLearner(n_classes=2, n_slots=10, n_iters=3, n_attr=n_segments, n_set_heads=alphabet_size,
+                            set_transf_hidden=128, device=device).to(device)
+    #net = NeSyConceptLearner(n_classes=2, n_attr=6, n_set_heads=4, set_transf_hidden=128,
+    #                         device=device).to(device)
     output = net(x)
     print(output)
 

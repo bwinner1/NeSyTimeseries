@@ -35,7 +35,7 @@ def get_args():
     )
     parser.add_argument(
         "--dataset",
-        choices=["clevr-hans-state"],
+        choices=["p2s"],
     )
     parser.add_argument(
         "--no-cuda",
@@ -54,13 +54,14 @@ def get_args():
     parser.add_argument("--fp-ckpt", type=str, default=None, help="checkpoint filepath")
 
     # Slot attention params
-    parser.add_argument('--n-slots', default=10, type=int,
+    """ parser.add_argument('--n-slots', default=10, type=int,
                         help='number of slots for slot attention module')
     parser.add_argument('--n-iters-slot-att', default=3, type=int,
                         help='number of iterations in slot attention module')
     parser.add_argument('--n-attr', default=18, type=int,
                         help='number of attributes per object')
-
+    """
+    
     # SAX params
     parser.add_argument('--concept', choices=["sax", "tsfresh", "vq-vae"],
                         help='concept that should be applied to times series' )
@@ -76,9 +77,9 @@ def get_args():
     args.n_heads = 4
     args.set_transf_hidden = 128
 
-    assert args.data_dir.endswith(os.path.sep)
-    args.conf_version = args.data_dir.split(os.path.sep)[-2]
-    args.name = args.name + f"-{args.conf_version}"
+    #assert args.data_dir.endswith(os.path.sep)
+    #args.conf_version = args.data_dir.split(os.path.sep)[-2]
+    #args.name = args.name + f"-{args.conf_version}"
 
     if args.mode == 'test' or args.mode == 'plot':
         assert args.fp_ckpt
