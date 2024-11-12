@@ -18,9 +18,12 @@ MODEL="ts-concept-learner-$NUM"
 #-------------------------------------------------------------------------------#
 # CLEVR-Hans3
 
-# For gpu
+
+# for cpu usage: add --no-cuda
 CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s --concept sax --n-segments 8 --alphabet-size 4 \
---epochs 50 --name $MODEL --lr 0.0001 --batch-size 128 --seed 0 --mode train
+--epochs 50 --name $MODEL --lr 0.0001 --batch-size 32 --seed 0 --num-workers 4 --mode train --no-cuda
+
+
 
 # For gpu (old version)
 #CUDA_VISIBLE_DEVICES=$DEVICE python train_nesy_concept_learner_clevr_hans.py --data-dir $DATA --dataset $DATASET \

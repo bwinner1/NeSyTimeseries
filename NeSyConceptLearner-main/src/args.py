@@ -80,6 +80,7 @@ def get_args():
     #assert args.data_dir.endswith(os.path.sep)
     #args.conf_version = args.data_dir.split(os.path.sep)[-2]
     #args.name = args.name + f"-{args.conf_version}"
+    args.conf_version = "1.0"
 
     if args.mode == 'test' or args.mode == 'plot':
         assert args.fp_ckpt

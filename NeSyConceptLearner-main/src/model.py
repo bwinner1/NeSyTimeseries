@@ -533,9 +533,7 @@ class NeSyConceptLearner(nn.Module):
         attrs_trans = self.img2state_net._transform_attrs(attrs)
         run through classifier via set transformer 
         """
-        attrs_trans = torch.tensor(attrs, dtype=torch.float32).to(self.device)
-        #print(f"attrs_trans: {attrs_trans}")
-        #print(f"attrs_trans.shape: {attrs_trans.shape}")
+        attrs_trans = torch.tensor(attrs, dtype=torch.float32)
         cls = self.set_cls(attrs_trans)
         return cls.squeeze(), attrs
 
@@ -559,8 +557,8 @@ if __name__ == "__main__":
     
     #n_classes is 2, as there are two possible outcomes for a sample, either defect or not 
 
-    net = NeSyConceptLearner(n_classes=2, n_slots=10, n_iters=3, n_attr=n_segments, n_set_heads=alphabet_size,
-                            set_transf_hidden=128, device=device).to(device)
+    net = NeSyConceptLearner(n_classes=2, n_attr=n_segments,
+                            n_set_heads=alphabet_size, set_transf_hidden=128)
     #net = NeSyConceptLearner(n_classes=2, n_attr=6, n_set_heads=4, set_transf_hidden=128,
     #                         device=device).to(device)
     output = net(x)

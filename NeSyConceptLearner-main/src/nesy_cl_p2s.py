@@ -23,7 +23,7 @@ from datasets import DatasetDict
 os.environ["MKL_NUM_THREADS"] = "6"
 os.environ["NUMEXPR_NUM_THREADS"] = "6"
 os.environ["OMP_NUM_THREADS"] = "6"
-os.environ["AEON_DEPRECATION_WARNING"] = str(False)
+os.environ["aeon.AEON_DEPRECATION_WARNING"] = "False"
 torch.set_num_threads(6)
 
 # -----------------------------------------
@@ -102,7 +102,7 @@ def run_test_final(net, loader, criterion, writer, args, datasplit):
 
 def run(net, loader, optimizer, criterion, split, writer, args, train=False, plot=False, epoch=0):
     if train:
-        net.img2state_net.eval()
+        #net.img2state_net.eval()
         net.set_cls.train()
         torch.set_grad_enabled(True)
     else:
@@ -121,7 +121,28 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
     for i, sample in enumerate(loader, start=epoch * iters_per_epoch):
 
         # input is either a set or an image
-        imgs, target_set, img_class_ids, img_ids, _, table_expl = map(lambda x: x.cuda(), sample)
+        #imgs, target_set, img_class_ids, img_ids, _, table_expl = map(lambda x: x.cuda(), sample)
+        #time_series, label, speed, mask = sample.values()
+
+        label = sample['label']
+        speed = sample['speed']
+
+        concepts_list = sample['dowel_deep_drawing_ow'][0]
+        concepts = torch.stack(concepts_list).T
+        # converts list of size (n_segments x Tensor (batch_size))
+        # into a Tensor of size (batch_size, n_segments)
+        
+        mask_list = sample['mask']
+        mask = torch.stack(mask_list).T
+        # converts list 
+        # into a Tensor of size (batch_size, time_series)
+
+        print()
+        print(concepts.size())
+        print(label.size())
+        print(speed.size())
+        print(mask.size())
+
         img_class_ids = img_class_ids.long()
 
         # forward evaluation through the network
@@ -224,12 +245,19 @@ def train(args):
         num_workers=args.num_workers,
         shuffle=True,
     )
+
     test_loader = DataLoader(
         dataset['test'],
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         shuffle=False,
     )
+
+    """ 
+    print("Testing loaders:")
+    for i, sample in enumerate(train_loader):
+        print(f"i={i}")
+ """
 
     #n_classes is 2, as there are two possible outcomes for a sample, either defect or not 
     args.n_classes = 2
@@ -250,10 +278,8 @@ def train(args):
       #                       category_ids=args.category_ids, device=args.device)
     
     
-### TODO: Continue from here
-### Current problem: device is not defined
-    net = model.NeSyConceptLearner(n_classes=2, n_slots=10, n_iters=3, n_attr=args.n_segments, n_set_heads=args.alphabet_size, #
-                                   set_transf_hidden=128, device=device).to(device)
+    net = model.NeSyConceptLearner(n_classes=2, n_attr=args.n_segments,
+                                 n_set_heads=args.alphabet_size, set_transf_hidden=128)
 
     # from other file
       
@@ -261,9 +287,9 @@ def train(args):
     #                         category_ids = [3, 6, 8, 10, 17], device=device).to(device)
 
     # load pretrained concept embedding module
-    log = torch.load("logs/slot-attention-clevr-state-3_final", map_location=torch.device(args.device))
-    net.img2state_net.load_state_dict(log['weights'], strict=True)
-    print("Pretrained slot attention model loaded!")
+    #log = torch.load("logs/slot-attention-clevr-state-3_final", map_location=torch.device(args.device))
+    #net.img2state_net.load_state_dict(log['weights'], strict=True)
+    #print("Pretrained slot attention model loaded!")
 
     net = net.to(args.device)
 
@@ -284,8 +310,6 @@ def train(args):
 
     # tensorboard writer
     writer = utils.create_writer(args)
-
-
 
     cur_best_val_loss = np.inf
     for epoch in range(args.epochs):
@@ -314,7 +338,10 @@ def train(args):
         rtpt.step()
 
     # load best model for final evaluation
-    net = model.NeSyConceptLearner(args, n_slots=args.n_slots, n_iters=args.n_iters_slot_att, n_attr=args.n_attr,
+    # net = model.NeSyConceptLearner(args, n_slots=args.n_slots, n_iters=args.n_iters_slot_att, n_attr=args.n_attr,
+    #                        set_transf_hidden=args.set_transf_hidden, category_ids=args.category_ids,
+    #                        device=args.device)
+    net = model.NeSyConceptLearner(n_classes=2, n_attr=args.n_attr,
                            set_transf_hidden=args.set_transf_hidden, category_ids=args.category_ids,
                            device=args.device)
     net = net.to(args.device)
