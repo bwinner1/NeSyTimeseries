@@ -122,36 +122,46 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
         # input is either a set or an image
         #imgs, target_set, img_class_ids, img_ids, _, table_expl = map(lambda x: x.cuda(), sample)
-        #time_series, label, speed, mask = sample.values()
 
-        label = sample['label']
-        speed = sample['speed']
+
+        time_series, labels, speed, mask = sample.values()
+        """
+        labels = sample['label']
+        speeds = sample['speed']
 
         concepts_list = sample['dowel_deep_drawing_ow'][0]
         concepts = torch.stack(concepts_list).T
         # converts list of size (n_segments x Tensor (batch_size))
         # into a Tensor of size (batch_size, n_segments)
         
-        mask_list = sample['mask']
-        mask = torch.stack(mask_list).T
+        masks_list = sample['mask']
+        masks = torch.stack(masks_list).T
         # converts list 
         # into a Tensor of size (batch_size, time_series)
 
         print()
         print(concepts.size())
-        print(label.size())
-        print(speed.size())
-        print(mask.size())
+        print(labels.size())
+        print(speeds.size())
+        print(masks.size())
+        input = (concepts_list, speeds, masks_list)
+ """
 
-        img_class_ids = img_class_ids.long()
+        
+        #img_class_ids = img_class_ids.long()
+        labels = labels.long()
 
+        input = torch.stack((time_series[0], speed, mask))
         # forward evaluation through the network
-        output_cls, output_attr = net(imgs)
+        # output_cls, output_attr = net(input)
+        output_cls, output_attr = net(input)
 
         # class prediction
-        _, preds = torch.max(output_cls, 1)
+        #_, preds = torch.max(output_cls, 1)
+        preds = (output_cls > 0.5).long()
 
-        loss = criterion(output_cls, img_class_ids)
+        loss = criterion(output_cls, labels)
+        
 
         # Outer optim step
         if train:
@@ -160,7 +170,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
             optimizer.step()
 
         running_loss += loss.item()
-        labels_all.extend(img_class_ids.cpu().numpy())
+        labels_all.extend(labels.cpu().numpy())
         preds_all.extend(preds.cpu().numpy())
 
         # Plot predictions in Tensorboard

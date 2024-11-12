@@ -533,6 +533,8 @@ class NeSyConceptLearner(nn.Module):
         attrs_trans = self.img2state_net._transform_attrs(attrs)
         run through classifier via set transformer 
         """
+        attrs = torch.stack(attrs)
+        attrs = torch.cat(attrs, dim=-1)
         attrs_trans = torch.tensor(attrs, dtype=torch.float32)
         cls = self.set_cls(attrs_trans)
         return cls.squeeze(), attrs
