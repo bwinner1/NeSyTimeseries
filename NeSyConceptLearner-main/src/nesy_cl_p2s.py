@@ -9,6 +9,8 @@ from sklearn import metrics
 from tqdm import tqdm
 
 import data_clevr_hans as data
+from p2s import P2S_Dataset
+
 import model
 import utils as utils
 from rtpt import RTPT
@@ -16,9 +18,10 @@ from args import get_args
 
 torch.autograd.set_detect_anomaly(True)
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset
 from datasets import load_dataset
 from datasets import DatasetDict
+
 
 os.environ["MKL_NUM_THREADS"] = "6"
 os.environ["NUMEXPR_NUM_THREADS"] = "6"
@@ -118,16 +121,21 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
     running_loss = 0
     preds_all = []
     labels_all = []
-    for i, sample in enumerate(loader, start=epoch * iters_per_epoch):
+    for i, (concepts, labels) in enumerate(loader, start=epoch * iters_per_epoch):
 
         # input is either a set or an image
         #imgs, target_set, img_class_ids, img_ids, _, table_expl = map(lambda x: x.cuda(), sample)
 
+        print(f"\niteration {i}:")
+        print("concepts")
+        print(concepts.size())
+        #print(labels)
 
-        time_series, labels, speed, mask = sample.values()
         """
-        labels = sample['label']
-        speeds = sample['speed']
+        time_series, labels, speed, mask = sample.values()
+
+                labels = sample['label']
+        speeds = sample['todospeed']
 
         concepts_list = sample['dowel_deep_drawing_ow'][0]
         concepts = torch.stack(concepts_list).T
@@ -146,12 +154,24 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         print(masks.size())
         input = (concepts_list, speeds, masks_list)
  """
-
         
-        #img_class_ids = img_class_ids.long()
         labels = labels.long()
+        print("labels")
+        print(labels.size())
 
-        input = torch.stack((time_series[0], speed, mask))
+        #input = torch.stack((time_series[0], speed, mask))
+        # input = concepts.tolist()
+
+        # input should have dimensions(batch_size,  time steps, features)
+        input = concepts.permute(0, 2, 1)
+
+        #apply one hot key encoding
+        input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
+
+
+        print("input:")
+        print(input)
+
         # forward evaluation through the network
         # output_cls, output_attr = net(input)
         output_cls, output_attr = net(input)
@@ -193,28 +213,34 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 def train(args):
     print("running train method...")
     if args.dataset == "p2s":
+
         dataset = load_dataset('AIML-TUDA/P2S', 'Normal', download_mode='reuse_dataset_if_exists')
 
         # Extracting the time series data from the train and test dataset 
         ts_train = dataset['train']['dowel_deep_drawing_ow']
-        ts_test = dataset['test']['dowel_deep_drawing_ow']
-
         ts_train = np.array(ts_train)
-        ts_test = np.array(ts_test)
 
-        # Adding a third dimension, in the middle of the shape, as needed for SAX
-        ts_train = ts_train.reshape(ts_train.shape[0], 1, ts_train.shape[1])
-        ts_test = ts_test.reshape(ts_test.shape[0], 1, ts_test.shape[1])
+
+
+        #ts_test = dataset['test']['dowel_deep_drawing_ow']
+        #ts_test = np.array(ts_test)
+        #ts_test = ts_test.reshape(ts_test.shape[0], 1, ts_test.shape[1])
     else:
         print("Wrong dataset specifier")
         exit()
 
-
-
     if args.concept == "sax":
+        # Adding a third dimension, in the middle of the shape, as needed for SAX
+        ts_train = ts_train.reshape(ts_train.shape[0], 1, ts_train.shape[1])
+
         sax = model.SAXTransformer(n_segments=args.n_segments, alphabet_size=args.alphabet_size)
-        concepts_train, _, _ = sax.transform(ts_train)
-        concepts_test, _, _ = sax.transform(ts_test)
+        concepts, _, _ = sax.transform(ts_train)
+        
+
+
+#        concepts_test, _, _ = sax.transform(ts_test)
+
+        
     ### TODO: Add other cases
     #elif args.concept == "tsfresh":
     #elif args.concept == "vq-vae":
@@ -223,12 +249,7 @@ def train(args):
         exit()
 
 
-    # TODO: Delete this two lines, as a dataset object can't be changed
-    #dataset['train']['dowel_deep_drawing_ow'] = concepts_train
-    #dataset['test']['dowel_deep_drawing_ow'] = concepts_test
-
-    ## TODO: Make sure that the added lines here actually work:
-
+    """
     # For all samples in the training dataset, ignore the current value and overwrite it with the value from dataset_train
     dataset_train = dataset['train'].map(
         lambda _, idx: {'dowel_deep_drawing_ow': concepts_train[idx]},
@@ -248,19 +269,30 @@ def train(args):
         'train': dataset_train,
         'test': dataset_test
     })
+"""
+
+    #keys_to_keep = ['a', 'c']
+    #data = {key: dataset['train'][key] for key in keys_to_keep if key in dataset['train']}
+    
+    labels = dataset['train']['label']
+    concepts = torch.tensor(concepts)
+    #concepts = torch.squeeze(concepts)
+
+    labels = torch.tensor(labels)
+    print("Concepts and labels:")
+    print(concepts.size())
+    print(labels.size())
+
+    #p2s_dataset = P2S_Dataset(concepts, labels)
+
+    dataset = TensorDataset(concepts, labels)
+
 
     train_loader = DataLoader(
-        dataset['train'],
+        dataset,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         shuffle=True,
-    )
-
-    test_loader = DataLoader(
-        dataset['test'],
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        shuffle=False,
     )
 
     """ 
@@ -273,33 +305,9 @@ def train(args):
     args.n_classes = 2
     args.class_weights = torch.ones(args.n_classes)/args.n_classes
     args.classes = np.arange(args.n_classes)
-
-    #Probably irrelevant
-    #if(args.concept == "sax"):
-        #All values in SAX are means, therefore there is only one category, starting at index 0.
-    #    args.category_ids = [0]
-    #elif args.concept == "tsfresh":
-        # add a staring index for each category type, f.e. means, general data (variance, overall mean, etc.)
-    #elif args.concept == "vq-vae":
-
-
-    #net = model.NeSyConceptLearner(n_classes=args.n_classes, n_slots=args.n_slots, n_iters=args.n_iters_slot_att,
-     #                        n_attr=args.n_attr, n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden,
-      #                       category_ids=args.category_ids, device=args.device)
-    
     
     net = model.NeSyConceptLearner(n_classes=2, n_attr=args.n_segments,
-                                 n_set_heads=args.alphabet_size, set_transf_hidden=128)
-
-    # from other file
-      
-    #net = NeSyConceptLearner(n_classes=2, n_slots=10, n_iters=3, n_attr=6, n_set_heads=4, set_transf_hidden=128,
-    #                         category_ids = [3, 6, 8, 10, 17], device=device).to(device)
-
-    # load pretrained concept embedding module
-    #log = torch.load("logs/slot-attention-clevr-state-3_final", map_location=torch.device(args.device))
-    #net.img2state_net.load_state_dict(log['weights'], strict=True)
-    #print("Pretrained slot attention model loaded!")
+                                 n_set_heads=args.alphabet_size, set_transf_hidden=128, device=args.device)
 
     net = net.to(args.device)
 
@@ -307,13 +315,14 @@ def train(args):
     optimizer = torch.optim.Adam(
         [p for name, p in net.named_parameters() if p.requires_grad and 'set_cls' in name], lr=args.lr
     )
-    criterion = nn.CrossEntropyLoss()
+    # criterion = nn.CrossEntropyLoss()
+    criterion = nn.BCELoss()
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=0.000001)
 
     torch.backends.cudnn.benchmark = True
 
     # Create RTPT object
-    rtpt = RTPT(name_initials='WS', experiment_name=f"Clevr Hans Slot Att Set Transf xil",
+    rtpt = RTPT(name_initials='BI', experiment_name=f"P2S NeSy Concept Learner xil",
                 max_iterations=args.epochs)
     # Start the RTPT tracking
     rtpt.start()

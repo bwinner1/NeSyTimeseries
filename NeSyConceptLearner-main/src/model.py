@@ -509,6 +509,7 @@ class NeSyConceptLearner(nn.Module):
         super().__init__()
         self.device = device
         # Concept Embedding Module
+        # --- Extracted out of SAX ---
         """ self.img2state_net = SlotAttention_model(n_slots, n_iters, n_attr, encoder_hidden_channels=64,
                                                  attention_hidden_channels=128, category_ids=category_ids,
                                                  device=device) """
@@ -526,6 +527,9 @@ class NeSyConceptLearner(nn.Module):
         :return: Tuple of outputs of both modules, [batch, n_classes] classification/ reasoning module output,
         [batch, n_slots, n_attr] concept embedding module output/ symbolic representation
         """
+        """
+        :param attrs: 3D Tensor[batch, sets, features]
+        """
         #old version:
         """     
         attrs = self.img2state_net(img)
@@ -533,10 +537,18 @@ class NeSyConceptLearner(nn.Module):
         attrs_trans = self.img2state_net._transform_attrs(attrs)
         run through classifier via set transformer 
         """
-        attrs = torch.stack(attrs)
-        attrs = torch.cat(attrs, dim=-1)
-        attrs_trans = torch.tensor(attrs, dtype=torch.float32)
-        cls = self.set_cls(attrs_trans)
+        print(f"attrs: {attrs}")
+        print(f"attrs.size(): {attrs.size()}")
+        #attrs = torch.stack(attrs)
+        #   attrs = torch.cat(attrs, dim=-1)
+        #attrs_trans = torch.tensor(attrs, dtype=torch.float32)
+        # Converting the tensor into a float tensor
+        # attrs = torch.tensor(attrs, dtype=torch.float32)
+        attrs = attrs.float()
+        # attrs = attrs.clone().detach()
+        
+        # TODO: use one-hot-key encoding
+        cls = self.set_cls(attrs)
         return cls.squeeze(), attrs
 
 
