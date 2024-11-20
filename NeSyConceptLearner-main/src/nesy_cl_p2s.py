@@ -123,12 +123,13 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
     labels_all = []
     for i, (concepts, labels) in enumerate(loader, start=epoch * iters_per_epoch):
 
-        # input is either a set or an image
-        #imgs, target_set, img_class_ids, img_ids, _, table_expl = map(lambda x: x.cuda(), sample)
+        # Move both tensors to correct device
+        concepts = concepts.to(args.device)
+        labels = labels.to(args.device)
 
-        print(f"\niteration {i}:")
-        print("concepts")
-        print(concepts.size())
+        #print(f"\niteration {i}:")
+        #print("concepts")
+        #print(concepts.size())
         #print(labels)
 
         """
@@ -155,33 +156,40 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         input = (concepts_list, speeds, masks_list)
  """
         
-        labels = labels.long()
-        print("labels")
-        print(labels.size())
-
-        #input = torch.stack((time_series[0], speed, mask))
-        # input = concepts.tolist()
+        labels = labels.float()
+        #print("labels")
+        #print(labels.size())
 
         # input should have dimensions(batch_size,  time steps, features)
-        input = concepts.permute(0, 2, 1)
+        #input = concepts.permute(0, 2, 1)
 
-        #apply one hot key encoding
+        # apply one hot key encoding
         input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
 
-
-        print("input:")
-        print(input)
+        #print("input:")
+        #print(input)
+        #print(input.size())
 
         # forward evaluation through the network
         # output_cls, output_attr = net(input)
+
         output_cls, output_attr = net(input)
 
         # class prediction
         #_, preds = torch.max(output_cls, 1)
-        preds = (output_cls > 0.5).long()
+
+        #TODO: Continue from here, probably the next line is wrong in this context, as the output is not in [0,1], but more like [-1.5; 1.5]
+        preds = (output_cls > 0.5).float()
+
+        print("output_cls")
+        print(output_cls)
+        print(output_cls.size())
+        
+        print("preds")
+        print(preds)
+        print(preds.size())
 
         loss = criterion(output_cls, labels)
-        
 
         # Outer optim step
         if train:
@@ -220,8 +228,6 @@ def train(args):
         ts_train = dataset['train']['dowel_deep_drawing_ow']
         ts_train = np.array(ts_train)
 
-
-
         #ts_test = dataset['test']['dowel_deep_drawing_ow']
         #ts_test = np.array(ts_test)
         #ts_test = ts_test.reshape(ts_test.shape[0], 1, ts_test.shape[1])
@@ -235,19 +241,14 @@ def train(args):
 
         sax = model.SAXTransformer(n_segments=args.n_segments, alphabet_size=args.alphabet_size)
         concepts, _, _ = sax.transform(ts_train)
-        
+        #concepts_test, _, _ = sax.transform(ts_test)
 
-
-#        concepts_test, _, _ = sax.transform(ts_test)
-
-        
     ### TODO: Add other cases
     #elif args.concept == "tsfresh":
     #elif args.concept == "vq-vae":
     else:
         print("Wrong concept specifier")
         exit()
-
 
     """
     # For all samples in the training dataset, ignore the current value and overwrite it with the value from dataset_train
@@ -276,7 +277,9 @@ def train(args):
     
     labels = dataset['train']['label']
     concepts = torch.tensor(concepts)
-    #concepts = torch.squeeze(concepts)
+
+    #Remove middle dimension from (samples, 1, concepts)
+    concepts = torch.squeeze(concepts)
 
     labels = torch.tensor(labels)
     print("Concepts and labels:")
@@ -285,8 +288,8 @@ def train(args):
 
     #p2s_dataset = P2S_Dataset(concepts, labels)
 
+    # Creating a Dataset using Tensors
     dataset = TensorDataset(concepts, labels)
-
 
     train_loader = DataLoader(
         dataset,
@@ -301,14 +304,11 @@ def train(args):
         print(f"i={i}")
  """
 
-    #n_classes is 2, as there are two possible outcomes for a sample, either defect or not 
-    args.n_classes = 2
-    args.class_weights = torch.ones(args.n_classes)/args.n_classes
-    args.classes = np.arange(args.n_classes)
+    #n_classes is 1, as it is a binary output, either defect or not 
+    args.n_classes = 1  
     
-    net = model.NeSyConceptLearner(n_classes=2, n_attr=args.n_segments,
-                                 n_set_heads=args.alphabet_size, set_transf_hidden=128, device=args.device)
-
+    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.alphabet_size, n_set_heads=args.n_segments,
+                                   set_transf_hidden=args.set_transf_hidden, device=args.device)
     net = net.to(args.device)
 
     # only optimize the set transformer classifier for now, i.e. freeze the state predictor
@@ -316,7 +316,7 @@ def train(args):
         [p for name, p in net.named_parameters() if p.requires_grad and 'set_cls' in name], lr=args.lr
     )
     # criterion = nn.CrossEntropyLoss()
-    criterion = nn.BCELoss()
+    criterion = nn.BCEWithLogitsLoss()
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=0.000001)
 
     torch.backends.cudnn.benchmark = True
@@ -360,9 +360,10 @@ def train(args):
     # net = model.NeSyConceptLearner(args, n_slots=args.n_slots, n_iters=args.n_iters_slot_att, n_attr=args.n_attr,
     #                        set_transf_hidden=args.set_transf_hidden, category_ids=args.category_ids,
     #                        device=args.device)
-    net = model.NeSyConceptLearner(n_classes=2, n_attr=args.n_attr,
-                           set_transf_hidden=args.set_transf_hidden, category_ids=args.category_ids,
-                           device=args.device)
+    #TODO: maybe change parameters like used in net above
+    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.n_segments,
+                                   set_transf_hidden=args.set_transf_hidden, device=args.device)
+
     net = net.to(args.device)
 
     checkpoint = torch.load(glob.glob(os.path.join(writer.log_dir, "model_*_bestvalloss*.pth"))[0])

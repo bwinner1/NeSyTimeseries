@@ -516,6 +516,7 @@ class NeSyConceptLearner(nn.Module):
         # Reasoning module
         self.set_cls = SetTransformer(dim_input=n_attr, dim_hidden=set_transf_hidden, num_heads=n_set_heads,
                                       dim_output=n_classes, ln=True)
+        print(f"set_transf_hidden: {set_transf_hidden}")
 
     def forward(self, attrs):
         #TODO: modify method comment
@@ -530,24 +531,9 @@ class NeSyConceptLearner(nn.Module):
         """
         :param attrs: 3D Tensor[batch, sets, features]
         """
-        #old version:
-        """     
-        attrs = self.img2state_net(img)
-        binarize slot attention output, apart from coordinate output
-        attrs_trans = self.img2state_net._transform_attrs(attrs)
-        run through classifier via set transformer 
-        """
-        print(f"attrs: {attrs}")
-        print(f"attrs.size(): {attrs.size()}")
-        #attrs = torch.stack(attrs)
-        #   attrs = torch.cat(attrs, dim=-1)
-        #attrs_trans = torch.tensor(attrs, dtype=torch.float32)
-        # Converting the tensor into a float tensor
-        # attrs = torch.tensor(attrs, dtype=torch.float32)
+        #print(f"attrs: {attrs}")
+        #print(f"attrs.size(): {attrs.size()}")
         attrs = attrs.float()
-        # attrs = attrs.clone().detach()
-        
-        # TODO: use one-hot-key encoding
         cls = self.set_cls(attrs)
         return cls.squeeze(), attrs
 
