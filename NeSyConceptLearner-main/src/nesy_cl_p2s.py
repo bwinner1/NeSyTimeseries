@@ -178,9 +178,15 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         # class prediction
         #_, preds = torch.max(output_cls, 1)
 
-        #TODO: Continue from here, probably the next line is wrong in this context, as the output is not in [0,1], but more like [-1.5; 1.5]
-        preds = (output_cls > 0.5).float()
 
+        #TODO: Continue from here, probably the next line is wrong in this context, as the output is not in [0,1], but more like [-1.5; 1.5]
+        #TODO: use line from above, with class number = 2
+
+        preds = (output_cls > 0).float()
+
+        #_, preds = torch.max(output_cls, 1)
+        #preds = preds.float()
+        """ 
         print("output_cls")
         print(output_cls)
         print(output_cls.size())
@@ -188,6 +194,11 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         print("preds")
         print(preds)
         print(preds.size())
+
+        print("labels")
+        print(labels)
+        print(labels.size()) 
+        """
 
         loss = criterion(output_cls, labels)
 
@@ -222,15 +233,23 @@ def train(args):
     print("running train method...")
     if args.dataset == "p2s":
 
-        dataset = load_dataset('AIML-TUDA/P2S', 'Normal', download_mode='reuse_dataset_if_exists')
+        train_dataset = load_dataset('AIML-TUDA/P2S', 'Normal', download_mode='reuse_dataset_if_exists')
 
-        # Extracting the time series data from the train and test dataset 
-        ts_train = dataset['train']['dowel_deep_drawing_ow']
+        # Extracting the time series data from the train and test dataset
+        ts_train = train_dataset['train']['dowel_deep_drawing_ow']
         ts_train = np.array(ts_train)
 
-        #ts_test = dataset['test']['dowel_deep_drawing_ow']
-        #ts_test = np.array(ts_test)
-        #ts_test = ts_test.reshape(ts_test.shape[0], 1, ts_test.shape[1])
+        # Number of samples that goes into the train dataset; the rest goes into the validation dataset
+        training_samples = int(ts_train.shape[0] * 0.8)
+        print(f"training_samples: {training_samples}")
+        
+        ts_val = ts_train[training_samples :]
+        ts_train = ts_train[: training_samples]
+        print(ts_val.shape[0])
+        print(ts_train.shape[0])
+
+        ts_test = train_dataset['test']['dowel_deep_drawing_ow']
+        ts_test = np.array(ts_test)
     else:
         print("Wrong dataset specifier")
         exit()
@@ -238,10 +257,13 @@ def train(args):
     if args.concept == "sax":
         # Adding a third dimension, in the middle of the shape, as needed for SAX
         ts_train = ts_train.reshape(ts_train.shape[0], 1, ts_train.shape[1])
+        ts_val = ts_val.reshape(ts_val.shape[0], 1, ts_val.shape[1])
+        ts_test = ts_test.reshape(ts_test.shape[0], 1, ts_test.shape[1])
 
         sax = model.SAXTransformer(n_segments=args.n_segments, alphabet_size=args.alphabet_size)
-        concepts, _, _ = sax.transform(ts_train)
-        #concepts_test, _, _ = sax.transform(ts_test)
+        concepts_train, _, _ = sax.transform(ts_train)
+        concepts_val, _, _ = sax.transform(ts_val)
+        concepts_test, _, _ = sax.transform(ts_test)
 
     ### TODO: Add other cases
     #elif args.concept == "tsfresh":
@@ -249,54 +271,48 @@ def train(args):
     else:
         print("Wrong concept specifier")
         exit()
-
-    """
-    # For all samples in the training dataset, ignore the current value and overwrite it with the value from dataset_train
-    dataset_train = dataset['train'].map(
-        lambda _, idx: {'dowel_deep_drawing_ow': concepts_train[idx]},
-        with_indices=True,  # Allows access to the row index
-        batched=False       # Process one example at a time
-    )
-
-    # Overwrite the dataset with the concept dataset
-    dataset_test = dataset['test'].map(
-        lambda _, idx: {'dowel_deep_drawing_ow': concepts_test[idx]},
-        with_indices=True,
-        batched=False
-    )
-
-    # Update the dataset with the new train and test splits
-    dataset = DatasetDict({
-        'train': dataset_train,
-        'test': dataset_test
-    })
-"""
-
-    #keys_to_keep = ['a', 'c']
-    #data = {key: dataset['train'][key] for key in keys_to_keep if key in dataset['train']}
     
-    labels = dataset['train']['label']
-    concepts = torch.tensor(concepts)
+    labels_train = train_dataset['train']['label'][:training_samples]
+    labels_val = train_dataset['train']['label'][training_samples:]
+    labels_test = train_dataset['test']['label']
+
+    concepts_train = torch.tensor(concepts_train)
+    concepts_val = torch.tensor(concepts_val)
+    concepts_test = torch.tensor(concepts_test)
 
     #Remove middle dimension from (samples, 1, concepts)
-    concepts = torch.squeeze(concepts)
+    concepts_train = torch.squeeze(concepts_train)
+    concepts_val = torch.squeeze(concepts_val)
+    concepts_test = torch.squeeze(concepts_test)
 
-    labels = torch.tensor(labels)
-    print("Concepts and labels:")
-    print(concepts.size())
-    print(labels.size())
+    labels_train = torch.tensor(labels_train)
+    labels_val = torch.tensor(labels_val)
+    labels_test = torch.tensor(labels_test)
+    
+    
+    print("\nTrain Concepts and labels:")
+    print(concepts_train.size())
+    print(labels_train.size())
+
+    print("\nVal Concepts and labels:")
+    print(concepts_val.size())
+    print(labels_val.size())
+
+    print("\nTest Concepts and labels:")
+    print(concepts_test.size())
+    print(labels_test.size())
 
     #p2s_dataset = P2S_Dataset(concepts, labels)
 
     # Creating a Dataset using Tensors
-    dataset = TensorDataset(concepts, labels)
+    train_dataset = TensorDataset(concepts_train, labels_train)
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
 
-    train_loader = DataLoader(
-        dataset,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        shuffle=True,
-    )
+    val_dataset = TensorDataset(concepts_val, labels_val)
+    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
+
+    test_dataset = TensorDataset(concepts_test, labels_test)
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
     """ 
     print("Testing loaders:")
@@ -305,7 +321,7 @@ def train(args):
  """
 
     #n_classes is 1, as it is a binary output, either defect or not 
-    args.n_classes = 1  
+    args.n_classes = 1
     
     net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.alphabet_size, n_set_heads=args.n_segments,
                                    set_transf_hidden=args.set_transf_hidden, device=args.device)
