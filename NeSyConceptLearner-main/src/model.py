@@ -516,7 +516,6 @@ class NeSyConceptLearner(nn.Module):
         # Reasoning module
         self.set_cls = SetTransformer(dim_input=n_attr, dim_hidden=set_transf_hidden, num_heads=n_set_heads,
                                       dim_output=n_classes, ln=True)
-        print(f"set_transf_hidden: {set_transf_hidden}")
 
     def forward(self, attrs):
         #TODO: modify method comment

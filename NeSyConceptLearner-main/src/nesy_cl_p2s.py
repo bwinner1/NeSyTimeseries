@@ -68,24 +68,33 @@ def run_test_final(net, loader, criterion, writer, args, datasplit):
     labels_all = []
     with torch.no_grad():
 
-        for i, sample in enumerate(tqdm(loader)):
+        for i, (concepts, labels) in enumerate(tqdm(loader)):
             # input is either a set or an image
-            imgs, target_set, img_class_ids, img_ids, _, table_expl = map(lambda x: x.cuda(), sample)
-            img_class_ids = img_class_ids.long()
+            # imgs, target_set, img_class_ids, img_ids, _, table_expl = map(lambda x: x.cuda(), sample)
+            # img_class_ids = img_class_ids.long()
+
+            concepts = concepts.to(args.device)
+            labels = labels.to(args.device)
+            labels = labels.float()
+        
 
             # forward evaluation through the network
-            output_cls, output_attr = net(imgs)
+            # output_cls, output_attr = net(imgs)
             # class prediction
-            _, preds = torch.max(output_cls, 1)
+            # _, preds = torch.max(output_cls, 1)
 
-            labels_all.extend(img_class_ids.cpu().numpy())
+            input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
+            output_cls, output_attr = net(input)
+            preds = (output_cls > 0).float()
+
+            labels_all.extend(labels.cpu().numpy())
             preds_all.extend(preds.cpu().numpy())
 
-            running_corrects = running_corrects + torch.sum(preds == img_class_ids)
-            loss = criterion(output_cls, img_class_ids)
+            running_corrects = running_corrects + torch.sum(preds == labels)
+            loss = criterion(output_cls, labels)
             running_loss += loss.item()
             preds = preds.cpu().numpy()
-            target = img_class_ids.cpu().numpy()
+            target = labels.cpu().numpy()
             preds = np.reshape(preds, (len(preds), 1))
             target = np.reshape(target, (len(preds), 1))
 
@@ -126,13 +135,15 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         # Move both tensors to correct device
         concepts = concepts.to(args.device)
         labels = labels.to(args.device)
+        labels = labels.float()
+        
+        """
 
         #print(f"\niteration {i}:")
         #print("concepts")
         #print(concepts.size())
         #print(labels)
 
-        """
         time_series, labels, speed, mask = sample.values()
 
                 labels = sample['label']
@@ -156,37 +167,34 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         input = (concepts_list, speeds, masks_list)
  """
         
-        labels = labels.float()
+
+        # apply one hot key encoding
+        input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
+        output_cls, output_attr = net(input)
+        preds = (output_cls > 0).float()
+
+        """ 
         #print("labels")
         #print(labels.size())
 
         # input should have dimensions(batch_size,  time steps, features)
         #input = concepts.permute(0, 2, 1)
-
-        # apply one hot key encoding
-        input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
-
+        
         #print("input:")
         #print(input)
         #print(input.size())
 
         # forward evaluation through the network
         # output_cls, output_attr = net(input)
-
-        output_cls, output_attr = net(input)
+ """
 
         # class prediction
         #_, preds = torch.max(output_cls, 1)
 
 
-        #TODO: Continue from here, probably the next line is wrong in this context, as the output is not in [0,1], but more like [-1.5; 1.5]
-        #TODO: use line from above, with class number = 2
-
-        preds = (output_cls > 0).float()
-
+        """ 
         #_, preds = torch.max(output_cls, 1)
         #preds = preds.float()
-        """ 
         print("output_cls")
         print(output_cls)
         print(output_cls.size())
@@ -236,8 +244,7 @@ def train(args):
         train_dataset = load_dataset('AIML-TUDA/P2S', 'Normal', download_mode='reuse_dataset_if_exists')
 
         # Extracting the time series data from the train and test dataset
-        ts_train = train_dataset['train']['dowel_deep_drawing_ow']
-        ts_train = np.array(ts_train)
+        ts_train = np.array(train_dataset['train']['dowel_deep_drawing_ow'])
 
         # Number of samples that goes into the train dataset; the rest goes into the validation dataset
         training_samples = int(ts_train.shape[0] * 0.8)
@@ -248,8 +255,7 @@ def train(args):
         print(ts_val.shape[0])
         print(ts_train.shape[0])
 
-        ts_test = train_dataset['test']['dowel_deep_drawing_ow']
-        ts_test = np.array(ts_test)
+        ts_test = np.array(train_dataset['test']['dowel_deep_drawing_ow'])
     else:
         print("Wrong dataset specifier")
         exit()
@@ -272,23 +278,14 @@ def train(args):
         print("Wrong concept specifier")
         exit()
     
-    labels_train = train_dataset['train']['label'][:training_samples]
-    labels_val = train_dataset['train']['label'][training_samples:]
-    labels_test = train_dataset['test']['label']
-
-    concepts_train = torch.tensor(concepts_train)
-    concepts_val = torch.tensor(concepts_val)
-    concepts_test = torch.tensor(concepts_test)
+    labels_train = torch.tensor(train_dataset['train']['label'][:training_samples])
+    labels_val = torch.tensor(train_dataset['train']['label'][training_samples:])
+    labels_test = torch.tensor(train_dataset['test']['label'])
 
     #Remove middle dimension from (samples, 1, concepts)
-    concepts_train = torch.squeeze(concepts_train)
-    concepts_val = torch.squeeze(concepts_val)
-    concepts_test = torch.squeeze(concepts_test)
-
-    labels_train = torch.tensor(labels_train)
-    labels_val = torch.tensor(labels_val)
-    labels_test = torch.tensor(labels_test)
-    
+    concepts_train = torch.squeeze(torch.tensor(concepts_train))
+    concepts_val = torch.squeeze(torch.tensor(concepts_val))
+    concepts_test = torch.squeeze(torch.tensor(concepts_test))
     
     print("\nTrain Concepts and labels:")
     print(concepts_train.size())
@@ -314,13 +311,7 @@ def train(args):
     test_dataset = TensorDataset(concepts_test, labels_test)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
-    """ 
-    print("Testing loaders:")
-    for i, sample in enumerate(train_loader):
-        print(f"i={i}")
- """
-
-    #n_classes is 1, as it is a binary output, either defect or not 
+    #n_classes is 1, as network should have a binary output, either defect or not
     args.n_classes = 1
     
     net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.alphabet_size, n_set_heads=args.n_segments,
@@ -351,8 +342,10 @@ def train(args):
         _ = run(net, train_loader, optimizer, criterion, split='train', args=args, writer=writer,
                 train=True, plot=False, epoch=epoch)
         scheduler.step()
+
+        # TODO: Set value back to plot=True
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
-                       train=False, plot=True, epoch=epoch)
+                       train=False, plot=False, epoch=epoch)
         _ = run(net, test_loader, optimizer, criterion, split='test', args=args, writer=writer,
                 train=False, plot=False, epoch=epoch)
 
@@ -377,7 +370,7 @@ def train(args):
     #                        set_transf_hidden=args.set_transf_hidden, category_ids=args.category_ids,
     #                        device=args.device)
     #TODO: maybe change parameters like used in net above
-    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.n_segments,
+    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.alphabet_size, n_set_heads=args.n_segments,
                                    set_transf_hidden=args.set_transf_hidden, device=args.device)
 
     net = net.to(args.device)
