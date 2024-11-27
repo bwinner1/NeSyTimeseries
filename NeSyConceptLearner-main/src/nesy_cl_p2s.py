@@ -173,6 +173,10 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         output_cls, output_attr = net(input)
         preds = (output_cls > 0).float()
 
+        #print(f"labels: {labels}")
+        #print(f"output_cls: {output_cls}")
+        #print(f"preds: {preds}")
+
         """ 
         #print("labels")
         #print(labels.size())
@@ -278,6 +282,8 @@ def train(args):
         print("Wrong concept specifier")
         exit()
     
+    # TODO: Shuffle train and val datasets
+
     labels_train = torch.tensor(train_dataset['train']['label'][:training_samples])
     labels_val = torch.tensor(train_dataset['train']['label'][training_samples:])
     labels_test = torch.tensor(train_dataset['test']['label'])
@@ -369,7 +375,7 @@ def train(args):
     # net = model.NeSyConceptLearner(args, n_slots=args.n_slots, n_iters=args.n_iters_slot_att, n_attr=args.n_attr,
     #                        set_transf_hidden=args.set_transf_hidden, category_ids=args.category_ids,
     #                        device=args.device)
-    #TODO: maybe change parameters like used in net above
+    
     net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.alphabet_size, n_set_heads=args.n_segments,
                                    set_transf_hidden=args.set_transf_hidden, device=args.device)
 
