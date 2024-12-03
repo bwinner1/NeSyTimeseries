@@ -39,6 +39,10 @@ def get_confusion_from_ckpt(net, test_loader, criterion, args, datasplit, writer
 
     # Generate Confusion Matrix
     if writer is not None:
+        # TODO: Delete the following overwrite. Instead overwrite the function later 
+        args.classes = np.arange(2)
+#        args.classes = np.arange(args.n_classes)
+
         utils.plot_confusion_matrix(true, pred, normalize=True, classes=args.classes,
                               sFigName=os.path.join(writer.log_dir, 'Confusion_matrix_normalize_{}.pdf'.format(
                                   datasplit))
@@ -173,11 +177,11 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         output_cls, output_attr = net(input)
         preds = (output_cls > 0).float()
 
+        """ 
         #print(f"labels: {labels}")
         #print(f"output_cls: {output_cls}")
         #print(f"preds: {preds}")
 
-        """ 
         #print("labels")
         #print(labels.size())
 
@@ -242,13 +246,18 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
 
 def train(args):
-    print("running train method...")
+    print("Running train method...")
     if args.dataset == "p2s":
 
         train_dataset = load_dataset('AIML-TUDA/P2S', 'Normal', download_mode='reuse_dataset_if_exists')
 
         # Extracting the time series data from the train and test dataset
         ts_train = np.array(train_dataset['train']['dowel_deep_drawing_ow'])
+
+        ts_train_speeds = np.array(train_dataset['train']['speed'])
+        print("ts_train_speeds")
+        print(ts_train_speeds[0:40])
+        
 
         # Number of samples that goes into the train dataset; the rest goes into the validation dataset
         training_samples = int(ts_train.shape[0] * 0.8)
@@ -351,7 +360,7 @@ def train(args):
 
         # TODO: Set value back to plot=True
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
-                       train=False, plot=False, epoch=epoch)
+                       train=False, plot=True, epoch=epoch)
         _ = run(net, test_loader, optimizer, criterion, split='test', args=args, writer=writer,
                 train=False, plot=False, epoch=epoch)
 

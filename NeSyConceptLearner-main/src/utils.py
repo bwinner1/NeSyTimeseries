@@ -3,6 +3,7 @@ import random
 import io
 import os
 import torch
+import datetime
 import matplotlib.pyplot as plt
 from PIL import Image
 # from skimage import color
@@ -120,7 +121,14 @@ def hungarian_matching(attrs, preds_attrs, verbose=0):
 
 
 def create_writer(args):
-    writer = SummaryWriter(f"runs/{args.conf_version}/{args.name}_seed{args.seed}", purge_step=0)
+
+    current_time = datetime.datetime.now()
+    time_string = f"{current_time.year}_{current_time.month:02}_{current_time.day:02}__" \
+                  f"{(current_time.hour + 1) % 24:02}_{current_time.minute:02}_{current_time.second:02}"
+
+    writer = SummaryWriter(f"runs/{args.conf_version}/{args.name}_seed{args.seed}_{time_string}", purge_step=0)
+    #writer = SummaryWriter(f"runs/{args.conf_version}/{args.name}_seed{args.seed}", purge_step=0)
+
 
     writer.add_scalar('Hyperparameters/learningrate', args.lr, 0)
     writer.add_scalar('Hyperparameters/num_epochs', args.epochs, 0)
