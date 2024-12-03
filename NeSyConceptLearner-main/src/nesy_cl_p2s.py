@@ -81,15 +81,13 @@ def run_test_final(net, loader, criterion, writer, args, datasplit):
             labels = labels.to(args.device)
             labels = labels.float()
         
+            # Network usage
+            """
+            #input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
+            #output_cls, output_attr = net(input)
+            #preds = (output_cls > 0).float()"""
 
-            # forward evaluation through the network
-            # output_cls, output_attr = net(imgs)
-            # class prediction
-            # _, preds = torch.max(output_cls, 1)
-
-            input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
-            output_cls, output_attr = net(input)
-            preds = (output_cls > 0).float()
+            output_cls, output_attr, preds = apply_net(concepts, net, num_classes=args.alphabet_size)
 
             labels_all.extend(labels.cpu().numpy())
             preds_all.extend(preds.cpu().numpy())
@@ -142,7 +140,6 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         labels = labels.float()
         
         """
-
         #print(f"\niteration {i}:")
         #print("concepts")
         #print(concepts.size())
@@ -171,13 +168,16 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         input = (concepts_list, speeds, masks_list)
  """
         
-
+        # Network usage
+        """
         # apply one hot key encoding
-        input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
-        output_cls, output_attr = net(input)
-        preds = (output_cls > 0).float()
+        #input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
+        #output_cls, output_attr = net(input)
+        #preds = (output_cls > 0).float()
+"""
+        output_cls, output_attr, preds = apply_net(concepts, net, num_classes=args.alphabet_size)
 
-        """ 
+        """
         #print(f"labels: {labels}")
         #print(f"output_cls: {output_cls}")
         #print(f"preds: {preds}")
@@ -200,7 +200,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         #_, preds = torch.max(output_cls, 1)
 
 
-        """ 
+        """
         #_, preds = torch.max(output_cls, 1)
         #preds = preds.float()
         print("output_cls")
@@ -360,7 +360,7 @@ def train(args):
 
         # TODO: Set value back to plot=True
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
-                       train=False, plot=True, epoch=epoch)
+                       train=False, plot=False, epoch=epoch)
         _ = run(net, test_loader, optimizer, criterion, split='test', args=args, writer=writer,
                 train=False, plot=False, epoch=epoch)
 
@@ -511,6 +511,19 @@ def plot(args):
     assert args.conf_version == 'CLEVR-Hans3'
     utils.save_expls(net, test_loader, "test", save_path=save_dir)
 
+def apply_net(input, net, num_classes):
+    """
+    # Old version:
+    # forward evaluation through the network
+    # output_cls, output_attr = net(imgs)
+    # class prediction
+    # _, preds = torch.max(output_cls, 1)"""
+
+    # Network usage
+    input = nn.functional.one_hot(input, num_classes=num_classes)
+    output_cls, output_attr = net(input)
+    preds = (output_cls > 0).float()
+    return output_cls, output_attr, preds
 
 def main():
     args = get_args()

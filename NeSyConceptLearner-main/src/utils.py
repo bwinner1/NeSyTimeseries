@@ -3,6 +3,7 @@ import random
 import io
 import os
 import torch
+import torch.nn as nn
 import datetime
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -237,7 +238,7 @@ def plot_confusion_matrix(y_true, y_pred, classes, normalize=True, title=None,
 
 def write_expls(net, data_loader, tagname, epoch, writer):
     """
-    Writes NeSy Concpet Learner explanations to tensorboard writer.
+    Writes NeSy Concept Learner explanations to tensorboard writer.
     """
 
     attr_labels = ['Sphere', 'Cube', 'Cylinder',
@@ -247,14 +248,17 @@ def write_expls(net, data_loader, tagname, epoch, writer):
 
     net.eval()
 
-    for i, sample in enumerate(data_loader):
-        # input is either a set or an image
-        imgs, target_set, img_class_ids, img_ids, _, _ = map(lambda x: x.cuda(), sample)
-        img_class_ids = img_class_ids.long()
+    for i, (concepts, labels) in enumerate(data_loader):
 
-        # forward evaluation through the network
+        #concepts = concepts.to(args.device)
+        #labels = labels.to(args.device)
+        labels = labels.float()
+
+        # Network usage
+        input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
+
         output_cls, output_attr = net(imgs)
-        _, preds = torch.max(output_cls, 1)
+        preds = (output_cls > 0).float()
 
         # convert sorting gt target set and gt table explanations to match the order of the predicted table
         target_set, match_ids = hungarian_matching(output_attr.to('cuda'), target_set)
