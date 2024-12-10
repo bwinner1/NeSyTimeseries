@@ -21,7 +21,7 @@ torch.autograd.set_detect_anomaly(True)
 from torch.utils.data import DataLoader, TensorDataset
 from datasets import load_dataset
 from datasets import DatasetDict
-
+from itertools import product
 
 os.environ["MKL_NUM_THREADS"] = "6"
 os.environ["NUMEXPR_NUM_THREADS"] = "6"
@@ -79,7 +79,7 @@ def run_test_final(net, loader, criterion, writer, args, datasplit):
 
             concepts = concepts.to(args.device)
             labels = labels.to(args.device)
-            labels = labels.float()
+            #labels = labels.float()
         
             # Network usage
             """
@@ -137,7 +137,9 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         # Move both tensors to correct device
         concepts = concepts.to(args.device)
         labels = labels.to(args.device)
-        labels = labels.float()
+
+        # Use the following only for BCEWithLogitsLoss():
+        # labels = labels.float()
         
         """
         #print(f"\niteration {i}:")
@@ -196,13 +198,8 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         # output_cls, output_attr = net(input)
  """
 
-        # class prediction
-        #_, preds = torch.max(output_cls, 1)
 
-
-        """
-        #_, preds = torch.max(output_cls, 1)
-        #preds = preds.float()
+        """ 
         print("output_cls")
         print(output_cls)
         print(output_cls.size())
@@ -214,7 +211,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         print("labels")
         print(labels)
         print(labels.size()) 
-        """
+         """
 
         loss = criterion(output_cls, labels)
 
@@ -228,6 +225,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         labels_all.extend(labels.cpu().numpy())
         preds_all.extend(preds.cpu().numpy())
 
+        ### TODO: Outcomment the following:
         # Plot predictions in Tensorboard
         if plot and not(i % iters_per_epoch):
             utils.write_expls(net, loader, f"Expl/{split}", epoch, writer)
@@ -326,18 +324,16 @@ def train(args):
     test_dataset = TensorDataset(concepts_test, labels_test)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
-    #n_classes is 1, as network should have a binary output, either defect or not
-    args.n_classes = 1
     
-    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.alphabet_size, device=args.device)
+    net = model.NeSyConceptLearner(n_attr=args.alphabet_size, device=args.device)
     net = net.to(args.device)
 
     # only optimize the set transformer classifier for now, i.e. freeze the state predictor
     optimizer = torch.optim.Adam(
         [p for name, p in net.named_parameters() if p.requires_grad and 'set_cls' in name], lr=args.lr
     )
-    # criterion = nn.CrossEntropyLoss()
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.CrossEntropyLoss()
+    #criterion = nn.BCEWithLogitsLoss()
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=0.000001)
 
     torch.backends.cudnn.benchmark = True
@@ -384,7 +380,7 @@ def train(args):
     #                        set_transf_hidden=args.set_transf_hidden, category_ids=args.category_ids,
     #                        device=args.device)
     
-    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.alphabet_size, device=args.device)
+    net = model.NeSyConceptLearner(n_attr=args.alphabet_size, device=args.device)
     net = net.to(args.device)
 
     checkpoint = torch.load(glob.glob(os.path.join(writer.log_dir, "model_*_bestvalloss*.pth"))[0])
@@ -392,20 +388,25 @@ def train(args):
     net.eval()
     print("\nModel loaded from checkpoint for final evaluation\n")
 
-    get_confusion_from_ckpt(net, test_loader, criterion, args=args, datasplit='test_best',
+    acc_test = get_confusion_from_ckpt(net, test_loader, criterion, args=args, datasplit='test_best',
                             writer=writer)
-    get_confusion_from_ckpt(net, val_loader, criterion, args=args, datasplit='val_best',
+    acc_val = get_confusion_from_ckpt(net, val_loader, criterion, args=args, datasplit='val_best',
                             writer=writer)
+
 
     # plot expls
+    # TODO: Set values back to plot=True
+
     run(net, train_loader, optimizer, criterion, split='train_best', args=args,
-        writer=writer, train=False, plot=True, epoch=0)
+        writer=writer, train=False, plot=False, epoch=0)
     run(net, val_loader, optimizer, criterion, split='val_best', args=args,
-        writer=writer, train=False, plot=True, epoch=0)
+        writer=writer, train=False, plot=False, epoch=0)
     run(net, test_loader, optimizer, criterion, split='test_best', args=args,
-        writer=writer, train=False, plot=True, epoch=0)
+        writer=writer, train=False, plot=False, epoch=0)
 
     writer.close()
+
+    return acc_test, acc_val
 
 
 def test(args):
@@ -519,7 +520,16 @@ def apply_net(input, net, num_classes=0):
     # Network usage
     # input_one_hot = nn.functional.one_hot(input, num_classes=num_classes)
     output_cls, output_attr = net(input)
-    preds = (output_cls > 0).float()
+    # preds = (output_cls > 0).float()
+    _, preds = torch.max(output_cls, 1)
+    """
+    print("input")
+    print(input)
+    print("output_cls")
+    print(output_cls)
+    print("preds")
+    print(preds) """
+    
     return output_cls, output_attr, preds
 
 def main():
@@ -530,6 +540,23 @@ def main():
         test(args)
     elif args.mode == 'plot':
         plot(args)
+    elif args.mode == 'gridsearch':
+
+        segments = (16, 32, 64, 128)
+        alphabet_sizes = (4, 6, 8)
+
+        test_accuracies = []
+        val_accuracies = []
+
+        for (s, a) in product(segments, alphabet_sizes):
+            args.n_segments = s
+            args.alphabet_size = a
+            acc_test, acc_val = train(args)
+            test_accuracies.append(acc_test)
+            val_accuracies.append(acc_val)
+
+        for (i, (s, a)) in enumerate(product(segments, alphabet_sizes)):
+            print(f"n_segments: {s}, alphabet_size: {a}, test_acc: {test_accuracies[i]}; val_acc: {val_accuracies[i]}")
 
 
 if __name__ == "__main__":
