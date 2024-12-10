@@ -235,11 +235,11 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
     writer.add_scalar(f"Loss/{split}_loss", running_loss / len(loader), epoch)
     writer.add_scalar(f"Acc/{split}_bal_acc", bal_acc, epoch)
 
+    # TODO: Comment these lines, to shorten execution time
     print("Epoch: {}/{}.. ".format(epoch, args.epochs),
           "{} Loss: {:.3f}.. ".format(split, running_loss / len(loader)),
           "{} Accuracy: {:.3f}.. ".format(split, bal_acc),
           )
-
     return running_loss / len(loader)
 
 
@@ -325,7 +325,7 @@ def train(args):
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
     
-    net = model.NeSyConceptLearner(n_attr=args.alphabet_size, device=args.device)
+    net = model.NeSyConceptLearner(n_attr=args.alphabet_size, n_set_heads=args.set_heads, device=args.device)
     net = net.to(args.device)
 
     # only optimize the set transformer classifier for now, i.e. freeze the state predictor
@@ -380,7 +380,7 @@ def train(args):
     #                        set_transf_hidden=args.set_transf_hidden, category_ids=args.category_ids,
     #                        device=args.device)
     
-    net = model.NeSyConceptLearner(n_attr=args.alphabet_size, device=args.device)
+    net = model.NeSyConceptLearner(n_attr=args.alphabet_size, n_set_heads=args.set_heads, device=args.device)
     net = net.to(args.device)
 
     checkpoint = torch.load(glob.glob(os.path.join(writer.log_dir, "model_*_bestvalloss*.pth"))[0])
@@ -542,21 +542,26 @@ def main():
         plot(args)
     elif args.mode == 'gridsearch':
 
-        segments = (16, 32, 64, 128)
-        alphabet_sizes = (4, 6, 8)
+        segments = (32, 64, 128, 256)
+        alphabet_sizes = (4, 6, 8, 10)
+        set_heads = (1, 2, 4, 8, 16)
 
         test_accuracies = []
         val_accuracies = []
 
-        for (s, a) in product(segments, alphabet_sizes):
+        for (s, a, s_h) in product(segments, alphabet_sizes, set_heads):
             args.n_segments = s
             args.alphabet_size = a
+            args.set_heads = s_h
+
             acc_test, acc_val = train(args)
             test_accuracies.append(acc_test)
             val_accuracies.append(acc_val)
 
-        for (i, (s, a)) in enumerate(product(segments, alphabet_sizes)):
-            print(f"n_segments: {s}, alphabet_size: {a}, test_acc: {test_accuracies[i]}; val_acc: {val_accuracies[i]}")
+        for (i, (s, a, s_h)) in enumerate(product(segments, alphabet_sizes, set_heads)):
+            print(f"n_segments: {s}, alphabet_size: {a}, set_heads: {s_h}, test_acc: {100 * test_accuracies[i]:.3f}; val_acc: {100 * val_accuracies[i]:.3f}")
+            #print('n_segments: {}, alphabet_size: {}, test_accuracy: {:.3f}, val_accuracy: {:.3f}'
+             #     .format(s, a, test_accuracies[i]*100, val_accuracies[i]*100))
 
 
 if __name__ == "__main__":
