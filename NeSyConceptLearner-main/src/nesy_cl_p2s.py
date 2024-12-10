@@ -255,18 +255,18 @@ def train(args):
         ts_train = np.array(train_dataset['train']['dowel_deep_drawing_ow'])
 
         ts_train_speeds = np.array(train_dataset['train']['speed'])
-        print("ts_train_speeds")
-        print(ts_train_speeds[0:40])
+        #print("ts_train_speeds")
+        #print(ts_train_speeds[0:40])
         
 
         # Number of samples that goes into the train dataset; the rest goes into the validation dataset
         training_samples = int(ts_train.shape[0] * 0.8)
-        print(f"training_samples: {training_samples}")
+        #print(f"training_samples: {training_samples}")
         
         ts_val = ts_train[training_samples :]
         ts_train = ts_train[: training_samples]
-        print(ts_val.shape[0])
-        print(ts_train.shape[0])
+        #print(ts_val.shape[0])
+        #print(ts_train.shape[0])
 
         ts_test = np.array(train_dataset['test']['dowel_deep_drawing_ow'])
     else:
@@ -329,8 +329,7 @@ def train(args):
     #n_classes is 1, as network should have a binary output, either defect or not
     args.n_classes = 1
     
-    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.alphabet_size, n_set_heads=args.n_segments,
-                                   set_transf_hidden=args.set_transf_hidden, device=args.device)
+    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.alphabet_size, device=args.device)
     net = net.to(args.device)
 
     # only optimize the set transformer classifier for now, i.e. freeze the state predictor
@@ -385,9 +384,7 @@ def train(args):
     #                        set_transf_hidden=args.set_transf_hidden, category_ids=args.category_ids,
     #                        device=args.device)
     
-    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.alphabet_size, n_set_heads=args.n_segments,
-                                   set_transf_hidden=args.set_transf_hidden, device=args.device)
-
+    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_attr=args.alphabet_size, device=args.device)
     net = net.to(args.device)
 
     checkpoint = torch.load(glob.glob(os.path.join(writer.log_dir, "model_*_bestvalloss*.pth"))[0])
@@ -511,7 +508,7 @@ def plot(args):
     assert args.conf_version == 'CLEVR-Hans3'
     utils.save_expls(net, test_loader, "test", save_path=save_dir)
 
-def apply_net(input, net, num_classes):
+def apply_net(input, net, num_classes=0):
     """
     # Old version:
     # forward evaluation through the network
@@ -520,7 +517,7 @@ def apply_net(input, net, num_classes):
     # _, preds = torch.max(output_cls, 1)"""
 
     # Network usage
-    input = nn.functional.one_hot(input, num_classes=num_classes)
+    # input_one_hot = nn.functional.one_hot(input, num_classes=num_classes)
     output_cls, output_attr = net(input)
     preds = (output_cls > 0).float()
     return output_cls, output_attr, preds

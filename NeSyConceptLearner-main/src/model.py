@@ -488,31 +488,29 @@ class NeSyConceptLearner(nn.Module):
     """
     The Neuro-Symbolic Concept Learner of Stammer et al. 2021 based on Slot Attention and Set Transformer.
     """
-    def __init__(self, n_classes, n_attr=18, n_set_heads=4, set_transf_hidden=128,
+    def __init__(self, n_classes, n_attr, n_set_heads = 4, set_transf_hidden = 128,
                  device='cuda'):
         """ 
         #old version
     def __init__(self, n_classes, n_slots=1, n_iters=3, n_attr=18, n_set_heads=4, set_transf_hidden=128,
                  category_ids=[3, 6, 8, 10, 17], device='cuda'): """
         """
-
         :param n_classes: Integer, number of classes
-        :param n_slots: Integer, number of slots for slot attention module
-        :param n_iters: Integer, number of attention iterations for slot attentions
         :param n_attr: Integer, number of attributes per object
         :param n_set_heads: Integer, number of attention heads for set transformer
         :param set_transf_hidden: Integer, hidden dim of set transformer
-        :param category_ids: List of Integers, specifying the starting ids of the attribute groups for the attribute
         prediction
+        
         :param device: String, either 'cpu' or 'cuda'
         """
         super().__init__()
         self.device = device
+        self.n_classes = n_classes
+        self.n_attr = n_attr
+        
         # Concept Embedding Module
-        # --- Extracted out of SAX ---
-        """ self.img2state_net = SlotAttention_model(n_slots, n_iters, n_attr, encoder_hidden_channels=64,
-                                                 attention_hidden_channels=128, category_ids=category_ids,
-                                                 device=device) """
+        # --- left out; is applied before the network ---
+
         # Reasoning module
         self.set_cls = SetTransformer(dim_input=n_attr, dim_hidden=set_transf_hidden, num_heads=n_set_heads,
                                       dim_output=n_classes, ln=True)
@@ -530,8 +528,7 @@ class NeSyConceptLearner(nn.Module):
         """
         :param attrs: 3D Tensor[batch, sets, features]
         """
-        #print(f"attrs: {attrs}")
-        #print(f"attrs.size(): {attrs.size()}")
+        attrs = F.one_hot(attrs, num_classes = self.n_attr)
         attrs = attrs.float()
         cls = self.set_cls(attrs)
         return cls.squeeze(), attrs

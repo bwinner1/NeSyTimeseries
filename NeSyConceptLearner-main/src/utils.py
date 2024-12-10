@@ -13,6 +13,7 @@ from matplotlib import rc
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from captum.attr import IntegratedGradients
+from nesy_cl_p2s import apply_net
 
 axislabel_fontsize = 8
 ticklabel_fontsize = 8
@@ -68,7 +69,9 @@ def generate_intgrad_captum_table(net, input, labels):
     saliencies = explainer.attribute(input, target=labels)
     # remove negative attributions
     saliencies[saliencies < 0] = 0.
+
     # normalize each saliency map by its max
+    # TODO: maybe delete normalization
     for k, sal in enumerate(saliencies):
         saliencies[k] = sal/torch.max(sal)
     return norm_saliencies(saliencies)
@@ -185,7 +188,7 @@ def performance_matrix(true, pred):
     accuracy = metrics.accuracy_score(true, pred)
     f1_score = metrics.f1_score(true, pred, average='macro')
     # print('Confusion Matrix:\n', metrics.confusion_matrix(true, pred))
-    print('Precision: {:.3f} Recall: {:.3f}, Accuracy: {:.3f}: ,f1_score: {:.3f}'.format(precision*100,recall*100,
+    print('Precision: {:.3f}, Recall: {:.3f}, Accuracy: {:.3f}, f1_score: {:.3f}'.format(precision*100,recall*100,
                                                                                          accuracy*100,f1_score*100))
     return precision, recall, accuracy, f1_score
 
@@ -250,23 +253,57 @@ def write_expls(net, data_loader, tagname, epoch, writer):
 
     for i, (concepts, labels) in enumerate(data_loader):
 
-        #concepts = concepts.to(args.device)
-        #labels = labels.to(args.device)
+        concepts = concepts.cuda()
+        labels = labels.cuda()
         labels = labels.float()
 
+
+        output_cls, output_attr, preds = apply_net(concepts, net)
+
+        # TODO: change this hard typed code, maybe apply one hot key already in dataset
+        # returned tensor is of type long, has to be converted to float 
+        concepts = nn.functional.one_hot(concepts, num_classes = 4).float()
+        
+        """
+        print("\nwrite_expl:\n")
+
+        print("output_cls")
+        print(output_cls.size())
+        print(output_cls)
+
+        print("output_attr")
+        print(output_attr.size())
+        print(output_attr)
+
+        print("preds")
+        print(preds.size())
+        print(preds)
+
+        print("labels")
+        print(labels.size())
+        print(labels)
+        
+        print("concepts")
+        print(concepts.size())
+        print(concepts)
+        """
+        
+        """
         # Network usage
         input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
-
         output_cls, output_attr = net(imgs)
-        preds = (output_cls > 0).float()
+        preds = (output_cls > 0).float()"""
 
+        """
         # convert sorting gt target set and gt table explanations to match the order of the predicted table
-        target_set, match_ids = hungarian_matching(output_attr.to('cuda'), target_set)
-        # table_expls = table_expls[:, match_ids][range(table_expls.shape[0]), range(table_expls.shape[0])]
-
+        concepts, match_ids = hungarian_matching(output_attr.to('cuda'), concepts)
+        # table_expls = table_expls[:, match_ids][range(table_expls.shape[0]), range(table_expls.shape[0])] 
+        """
+            
         # get explanations of set classifier
         table_saliencies = generate_intgrad_captum_table(net.set_cls, output_attr, preds)
-
+ 
+        """ 
         # get the ids of the two objects that receive the maximal importance, i.e. most important for the classification
         max_expl_obj_ids = table_saliencies.max(dim=2)[0].topk(2)[1]
 
@@ -283,15 +320,16 @@ def write_expls(net, data_loader, tagname, epoch, writer):
 
         # upscale img_saliencies to orig img shape
         img_saliencies = resize_tensor(img_saliencies.cpu(), imgs.shape[2], imgs.shape[2]).squeeze(dim=1).cpu()
-
+ """
         for img_id, (img, gt_table, pred_table, table_expl, img_expl, true_label, pred_label, imgid) in enumerate(zip(
-                imgs, target_set, output_attr, table_saliencies,
+                imgs, concepts, output_attr, table_saliencies,
                 img_saliencies, img_class_ids, preds,
                 img_ids
         )):
             # unnormalize images
             img = img / 2. + 0.5  # Rescale to [0, 1].
 
+            # TODO: check how much is recyclable from create_expl_images
             fig = create_expl_images(np.array(transforms.ToPILImage()(img.cpu()).convert("RGB")),
                                            pred_table.detach().cpu().numpy(),
                                            table_expl.detach().cpu().numpy(),

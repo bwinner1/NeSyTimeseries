@@ -73,9 +73,10 @@ def get_args():
 
     args = parser.parse_args()
 
+    # Moved the following settings to model.py
     # hard set !!!!!!!!!!!!!!!!!!!!!!!!!
-    args.n_heads = 4
-    args.set_transf_hidden = 128
+    # args.n_heads = 4
+    # args.set_transf_hidden = 128
 
     #assert args.data_dir.endswith(os.path.sep)
     #args.conf_version = args.data_dir.split(os.path.sep)[-2]
