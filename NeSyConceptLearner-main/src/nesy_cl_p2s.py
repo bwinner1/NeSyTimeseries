@@ -535,6 +535,7 @@ def apply_net(input, net, num_classes=0):
 def main():
     args = get_args()
     if args.mode == 'train':
+        args.set_heads = 4
         train(args)
     elif args.mode == 'test':
         test(args)
@@ -542,9 +543,18 @@ def main():
         plot(args)
     elif args.mode == 'gridsearch':
 
+        # Gridsearch 3
+        segments = (128, 256, 512, 1024)
+        alphabet_sizes = (4, 10, 16, 32)
+        set_heads = (4,)
+
+        """ 
+        # Gridsearch 2
         segments = (32, 64, 128, 256)
         alphabet_sizes = (4, 6, 8, 10)
         set_heads = (1, 2, 4, 8, 16)
+         """
+
 
         test_accuracies = []
         val_accuracies = []
@@ -558,8 +568,10 @@ def main():
             test_accuracies.append(acc_test)
             val_accuracies.append(acc_val)
 
+        print("n_segments,alphabet_size,set_heads,test_acc,val_acc")
         for (i, (s, a, s_h)) in enumerate(product(segments, alphabet_sizes, set_heads)):
-            print(f"n_segments: {s}, alphabet_size: {a}, set_heads: {s_h}, test_acc: {100 * test_accuracies[i]:.3f}; val_acc: {100 * val_accuracies[i]:.3f}")
+            print(f"{s},{a},{s_h},{100 * test_accuracies[i]:.3f},{100 * val_accuracies[i]:.3f}")
+            #print(f"n_segments: {s}, alphabet_size: {a}, set_heads: {s_h}, test_acc: {100 * test_accuracies[i]:.3f}; val_acc: {100 * val_accuracies[i]:.3f}")
             #print('n_segments: {}, alphabet_size: {}, test_accuracy: {:.3f}, val_accuracy: {:.3f}'
              #     .format(s, a, test_accuracies[i]*100, val_accuracies[i]*100))
 

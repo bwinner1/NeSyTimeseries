@@ -257,7 +257,6 @@ def write_expls(net, data_loader, tagname, epoch, writer):
         labels = labels.cuda()
         labels = labels.float()
 
-
         output_cls, output_attr, preds = apply_net(concepts, net)
 
         # TODO: change this hard typed code, maybe apply one hot key already in dataset

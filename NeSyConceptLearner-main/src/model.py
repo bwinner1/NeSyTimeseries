@@ -487,12 +487,13 @@ class SAXTransformer:
 class NeSyConceptLearner(nn.Module):
     """
     The Neuro-Symbolic Concept Learner of Stammer et al. 2021 based on Slot Attention and Set Transformer.
-    For BCEWithLogitsLoss n_classes is 1, as network should have a binary output, either defect or not
-
     """
     def __init__(self, n_attr, n_classes = 2, n_set_heads = 4, set_transf_hidden = 128,
                  device='cuda'):
         """ 
+        For BCEWithLogitsLoss n_classes is 1, as network should have a binary output, either defect or not
+        Note: set_transf_hidden % n_set_heads != 0
+
         #old version
     def __init__(self, n_classes, n_slots=1, n_iters=3, n_attr=18, n_set_heads=4, set_transf_hidden=128,
                  category_ids=[3, 6, 8, 10, 17], device='cuda'): """
