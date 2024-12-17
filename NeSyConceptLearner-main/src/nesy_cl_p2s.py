@@ -355,7 +355,7 @@ def train(args):
 
         # TODO: Set value back to plot=True
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
-                       train=False, plot=False, epoch=epoch)
+                       train=False, plot=True, epoch=epoch)
         _ = run(net, test_loader, optimizer, criterion, split='test', args=args, writer=writer,
                 train=False, plot=False, epoch=epoch)
 

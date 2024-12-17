@@ -18,14 +18,12 @@ MODEL="ts-concept-learner-$NUM"
 #-------------------------------------------------------------------------------#
 # CLEVR-Hans3
 
-# TODO: for serious tests, change epochs from 3 back to 50, batch-size back to 128
-
-# for cpu usage: add --no-cuda
-CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s --concept sax --n-segments 512  --alphabet-size 32 \
+CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s --concept sax --n-segments 512  --alphabet-size 32 \
 --epochs 50 --name $MODEL --lr 0.0001 --batch-size 128 --seed 0 --num-workers 4 --mode train \
-#--no-cuda
+#--no-cuda  # for cpu usage
 
-# TODO: Replace gridsearch with train
+# gridsearch | train | test | plot
+
 
 
 # For gpu (old version)

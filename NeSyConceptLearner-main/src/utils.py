@@ -66,6 +66,12 @@ def norm_saliencies(saliencies):
 def generate_intgrad_captum_table(net, input, labels):
     labels = labels.to("cuda")
     explainer = IntegratedGradients(net)
+    print("input")
+    print(input)
+
+    print("labels")
+    print(labels)
+    
     saliencies = explainer.attribute(input, target=labels)
     # remove negative attributions
     saliencies[saliencies < 0] = 0.
@@ -74,7 +80,14 @@ def generate_intgrad_captum_table(net, input, labels):
     # TODO: maybe delete normalization
     for k, sal in enumerate(saliencies):
         saliencies[k] = sal/torch.max(sal)
-    return norm_saliencies(saliencies)
+
+    returnValue = norm_saliencies(saliencies)
+
+    print("saliencies")
+    print(saliencies)
+    print("returnValue")
+    print(returnValue)
+    return returnValue
 
 
 def test_hungarian_matching(attrs=torch.tensor([[[0, 1, 1, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 0]],
@@ -261,7 +274,7 @@ def write_expls(net, data_loader, tagname, epoch, writer):
 
         # TODO: change this hard typed code, maybe apply one hot key already in dataset
         # returned tensor is of type long, has to be converted to float 
-        concepts = nn.functional.one_hot(concepts, num_classes = 4).float()
+        #concepts = nn.functional.one_hot(concepts, num_classes = 4).float()
         
         """
         print("\nwrite_expl:\n")
