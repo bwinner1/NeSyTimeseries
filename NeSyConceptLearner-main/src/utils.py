@@ -66,28 +66,35 @@ def norm_saliencies(saliencies):
 def generate_intgrad_captum_table(net, input, labels):
     labels = labels.to("cuda")
     explainer = IntegratedGradients(net)
+    
+    saliencies = explainer.attribute(input, target=labels)
+    
+    # remove negative attributions
+    # TODO: Maybe don't though, for using non-existance of a letter (SAX) for prediction
+    saliencies[saliencies < 0] = 0.
+
+    """
     print("input")
     print(input)
 
     print("labels")
     print(labels)
     
-    saliencies = explainer.attribute(input, target=labels)
-    # remove negative attributions
-    saliencies[saliencies < 0] = 0.
-
-    # normalize each saliency map by its max
     # TODO: maybe delete normalization
+    # normalize each saliency map by its max
     for k, sal in enumerate(saliencies):
         saliencies[k] = sal/torch.max(sal)
 
     returnValue = norm_saliencies(saliencies)
 
-    print("saliencies")
-    print(saliencies)
     print("returnValue")
     print(returnValue)
-    return returnValue
+    """
+
+    print("saliencies")
+    print(saliencies)
+    print(saliencies.size())
+    return saliencies
 
 
 def test_hungarian_matching(attrs=torch.tensor([[[0, 1, 1, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 0]],
@@ -156,6 +163,26 @@ def create_writer(args):
         for arg in vars(args):
             f.write(f"\n{arg}: {getattr(args, arg)}")
     return writer
+
+def create_expl(samples, concept, output, table_expl, true_label, pred_label):
+    """
+    Plots a figure of the sample with SAX labels. Marks important segments with a red box.
+    """
+
+    # TODO: Probably add SAX draw
+    # also add initial time series
+    fig, ax = plt.subplots()
+    
+    ax.plot(samples)
+    return fig
+
+    """
+    fig, ax = plt.subplots()
+    # Plot data on the axis
+    ax.plot(samples)
+    # Return the figure object
+    return fig
+    """
 
 
 def create_expl_images(img, pred_attrs, table_expl_attrs, img_expl, true_class_name, pred_class_name, xticklabels):
@@ -257,14 +284,9 @@ def write_expls(net, data_loader, tagname, epoch, writer):
     Writes NeSy Concept Learner explanations to tensorboard writer.
     """
 
-    attr_labels = ['Sphere', 'Cube', 'Cylinder',
-                   'Large', 'Small',
-                   'Rubber', 'Metal',
-                   'Cyan', 'Blue', 'Yellow', 'Purple', 'Red', 'Green', 'Gray', 'Brown']
-
     net.eval()
 
-    for i, (concepts, labels) in enumerate(data_loader):
+    for i, (concepts, labels, samples) in enumerate(data_loader):
 
         concepts = concepts.cuda()
         labels = labels.cuda()
@@ -272,10 +294,6 @@ def write_expls(net, data_loader, tagname, epoch, writer):
 
         output_cls, output_attr, preds = apply_net(concepts, net)
 
-        # TODO: change this hard typed code, maybe apply one hot key already in dataset
-        # returned tensor is of type long, has to be converted to float 
-        #concepts = nn.functional.one_hot(concepts, num_classes = 4).float()
-        
         """
         print("\nwrite_expl:\n")
 
@@ -299,56 +317,45 @@ def write_expls(net, data_loader, tagname, epoch, writer):
         print(concepts.size())
         print(concepts)
         """
-        
         """
         # Network usage
         input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
         output_cls, output_attr = net(imgs)
         preds = (output_cls > 0).float()"""
-
         """
         # convert sorting gt target set and gt table explanations to match the order of the predicted table
         concepts, match_ids = hungarian_matching(output_attr.to('cuda'), concepts)
         # table_expls = table_expls[:, match_ids][range(table_expls.shape[0]), range(table_expls.shape[0])] 
-        """
-            
+        """ 
         # get explanations of set classifier
         table_saliencies = generate_intgrad_captum_table(net.set_cls, output_attr, preds)
- 
-        """ 
-        # get the ids of the two objects that receive the maximal importance, i.e. most important for the classification
-        max_expl_obj_ids = table_saliencies.max(dim=2)[0].topk(2)[1]
 
-        # get attention masks
-        attns = net.img2state_net.slot_attention.attn
-        # reshape attention masks to 2D
-        attns = attns.reshape((attns.shape[0], attns.shape[1], int(np.sqrt(attns.shape[2])),
-                               int(np.sqrt(attns.shape[2]))))
-
-        # concatenate the visual explanation of the top two objects that are most important for the classification
-        img_saliencies = torch.zeros(attns.shape[0], attns.shape[2], attns.shape[3])
-        for obj_id in range(max_expl_obj_ids.shape[1]):
-            img_saliencies += attns[range(attns.shape[0]), obj_id, :, :].detach().cpu()
-
-        # upscale img_saliencies to orig img shape
-        img_saliencies = resize_tensor(img_saliencies.cpu(), imgs.shape[2], imgs.shape[2]).squeeze(dim=1).cpu()
- """
-        for img_id, (img, gt_table, pred_table, table_expl, img_expl, true_label, pred_label, imgid) in enumerate(zip(
-                imgs, concepts, output_attr, table_saliencies,
-                img_saliencies, img_class_ids, preds,
-                img_ids
+        # Add first 10 imgs/time series with their explanations to TensorBoard
+        for sample_id, (sample, concept, output, table_expl, true_label, pred_label) in enumerate(zip(
+                samples, concepts, output_attr, table_saliencies, labels, preds
         )):
-            # unnormalize images
-            img = img / 2. + 0.5  # Rescale to [0, 1].
-
+            
+            """
+            for img_id, (img, gt_table, pred_table, table_expl, img_expl, true_label, pred_label, imgid) in enumerate(zip(
+                    labels, concepts, output_attr, table_saliencies,
+                    img_saliencies, img_class_ids, preds,
+                    img_ids
+            )):
+            """
             # TODO: check how much is recyclable from create_expl_images
+
+            fig = create_expl(sample, concept, output, table_expl, true_label, pred_label)
+            
+            """ 
             fig = create_expl_images(np.array(transforms.ToPILImage()(img.cpu()).convert("RGB")),
                                            pred_table.detach().cpu().numpy(),
                                            table_expl.detach().cpu().numpy(),
                                            img_expl.detach().cpu().numpy(),
                                            true_label, pred_label, attr_labels)
-            writer.add_figure(f"{tagname}_{img_id}", fig, epoch)
-            if img_id > 10:
+             """
+            
+            writer.add_figure(f"{tagname}_{sample_id}", fig, epoch)
+            if sample_id >= 10:
                 break
 
         break

@@ -72,7 +72,7 @@ def run_test_final(net, loader, criterion, writer, args, datasplit):
     labels_all = []
     with torch.no_grad():
 
-        for i, (concepts, labels) in enumerate(tqdm(loader)):
+        for i, (concepts, labels, _) in enumerate(tqdm(loader)):
             # input is either a set or an image
             # imgs, target_set, img_class_ids, img_ids, _, table_expl = map(lambda x: x.cuda(), sample)
             # img_class_ids = img_class_ids.long()
@@ -132,7 +132,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
     running_loss = 0
     preds_all = []
     labels_all = []
-    for i, (concepts, labels) in enumerate(loader, start=epoch * iters_per_epoch):
+    for i, (concepts, labels, _) in enumerate(loader, start=epoch * iters_per_epoch):
 
         # Move both tensors to correct device
         concepts = concepts.to(args.device)
@@ -225,7 +225,6 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         labels_all.extend(labels.cpu().numpy())
         preds_all.extend(preds.cpu().numpy())
 
-        ### TODO: Outcomment the following:
         # Plot predictions in Tensorboard
         if plot and not(i % iters_per_epoch):
             utils.write_expls(net, loader, f"Expl/{split}", epoch, writer)
@@ -235,7 +234,6 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
     writer.add_scalar(f"Loss/{split}_loss", running_loss / len(loader), epoch)
     writer.add_scalar(f"Acc/{split}_bal_acc", bal_acc, epoch)
 
-    # TODO: Comment these lines, to shorten execution time
     print("Epoch: {}/{}.. ".format(epoch, args.epochs),
           "{} Loss: {:.3f}.. ".format(split, running_loss / len(loader)),
           "{} Accuracy: {:.3f}.. ".format(split, bal_acc),
@@ -251,20 +249,12 @@ def train(args):
 
         # Extracting the time series data from the train and test dataset
         ts_train = np.array(train_dataset['train']['dowel_deep_drawing_ow'])
-
         ts_train_speeds = np.array(train_dataset['train']['speed'])
-        #print("ts_train_speeds")
-        #print(ts_train_speeds[0:40])
         
-
         # Number of samples that goes into the train dataset; the rest goes into the validation dataset
         training_samples = int(ts_train.shape[0] * 0.8)
-        #print(f"training_samples: {training_samples}")
-        
         ts_val = ts_train[training_samples :]
         ts_train = ts_train[: training_samples]
-        #print(ts_val.shape[0])
-        #print(ts_train.shape[0])
 
         ts_test = np.array(train_dataset['test']['dowel_deep_drawing_ow'])
     else:
@@ -272,15 +262,12 @@ def train(args):
         exit()
 
     if args.concept == "sax":
-        # Adding a third dimension, in the middle of the shape, as needed for SAX
-        ts_train = ts_train.reshape(ts_train.shape[0], 1, ts_train.shape[1])
-        ts_val = ts_val.reshape(ts_val.shape[0], 1, ts_val.shape[1])
-        ts_test = ts_test.reshape(ts_test.shape[0], 1, ts_test.shape[1])
-
         sax = model.SAXTransformer(n_segments=args.n_segments, alphabet_size=args.alphabet_size)
-        concepts_train, _, _ = sax.transform(ts_train)
-        concepts_val, _, _ = sax.transform(ts_val)
-        concepts_test, _, _ = sax.transform(ts_test)
+
+        # Adding a third dimension, in the middle of the shape, as needed for SAX
+        concepts_train, _, _ = sax.transform(ts_train.reshape(ts_train.shape[0], 1, ts_train.shape[1]))
+        concepts_val, _, _ = sax.transform(ts_val.reshape(ts_val.shape[0], 1, ts_val.shape[1]))
+        concepts_test, _, _ = sax.transform(ts_test.reshape(ts_test.shape[0], 1, ts_test.shape[1]))
 
     ### TODO: Add other cases
     #elif args.concept == "tsfresh":
@@ -289,39 +276,47 @@ def train(args):
         print("Wrong concept specifier")
         exit()
     
-    # TODO: Shuffle train and val datasets
+    # TODO: Add Shuffling to train and val datasets
 
     labels_train = torch.tensor(train_dataset['train']['label'][:training_samples])
     labels_val = torch.tensor(train_dataset['train']['label'][training_samples:])
     labels_test = torch.tensor(train_dataset['test']['label'])
 
-    #Remove middle dimension from (samples, 1, concepts)
+    # Remove middle dimension from (samples, 1, concepts)
     concepts_train = torch.squeeze(torch.tensor(concepts_train))
     concepts_val = torch.squeeze(torch.tensor(concepts_val))
     concepts_test = torch.squeeze(torch.tensor(concepts_test))
+
+    # Create Torch Tensors for TensorDataset
+    ts_train = torch.tensor(ts_train)
+    ts_test = torch.tensor(ts_test)
+    ts_val = torch.tensor(ts_val)
     
-    print("\nTrain Concepts and labels:")
+    print("\nTrain Concepts, Labels and Time series:")
     print(concepts_train.size())
     print(labels_train.size())
+    print(ts_train.size())
 
-    print("\nVal Concepts and labels:")
+    print("\nVal Concepts, Labels and Time series:")
     print(concepts_val.size())
     print(labels_val.size())
+    print(ts_val.size())
 
-    print("\nTest Concepts and labels:")
+    print("\nTest Concepts, Labels and Time series:")
     print(concepts_test.size())
     print(labels_test.size())
+    print(ts_test.size())
 
     #p2s_dataset = P2S_Dataset(concepts, labels)
 
     # Creating a Dataset using Tensors
-    train_dataset = TensorDataset(concepts_train, labels_train)
+    train_dataset = TensorDataset(concepts_train, labels_train, ts_train)
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
 
-    val_dataset = TensorDataset(concepts_val, labels_val)
+    val_dataset = TensorDataset(concepts_val, labels_val, ts_val)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
-    test_dataset = TensorDataset(concepts_test, labels_test)
+    test_dataset = TensorDataset(concepts_test, labels_test, ts_test)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
     
@@ -354,8 +349,13 @@ def train(args):
         scheduler.step()
 
         # TODO: Set value back to plot=True
+
+        plot = False
+        if(epoch == args.epochs - 1):
+            plot = True
+
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
-                       train=False, plot=True, epoch=epoch)
+                        train=False, plot=plot, epoch=epoch)                       
         _ = run(net, test_loader, optimizer, criterion, split='test', args=args, writer=writer,
                 train=False, plot=False, epoch=epoch)
 
@@ -535,6 +535,7 @@ def apply_net(input, net, num_classes=0):
 def main():
     args = get_args()
     if args.mode == 'train':
+        torch.cuda.empty_cache()
         args.set_heads = 4
         train(args)
     elif args.mode == 'test':
