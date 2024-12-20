@@ -14,6 +14,9 @@ from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from captum.attr import IntegratedGradients
 from nesy_cl_p2s import apply_net
+from matplotlib import colormaps
+
+import string
 
 axislabel_fontsize = 8
 ticklabel_fontsize = 8
@@ -91,9 +94,9 @@ def generate_intgrad_captum_table(net, input, labels):
     print(returnValue)
     """
 
-    print("saliencies")
-    print(saliencies)
-    print(saliencies.size())
+    #print("saliencies")
+    #print(saliencies)
+    #print(saliencies.size())
     return saliencies
 
 
@@ -164,25 +167,88 @@ def create_writer(args):
             f.write(f"\n{arg}: {getattr(args, arg)}")
     return writer
 
-def create_expl(samples, concept, output, table_expl, true_label, pred_label):
-    """
-    Plots a figure of the sample with SAX labels. Marks important segments with a red box.
-    """
+def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
+    time_steps = time_series.shape[0]
+    increment = int(time_steps / concepts.shape[0])
 
-    # TODO: Probably add SAX draw
-    # also add initial time series
-    fig, ax = plt.subplots()
+    # TODO: Maybe use a sequential colormap instead of a quantitive
+    num_colors = np.max(concepts)
+    assert num_colors <= 19, "Alphabet size can't be higher than 10"
+    if(num_colors <= 9):
+        get_color = colormaps['tab10']
+    else:
+        get_color = colormaps['tab20b']
+
+    ax.plot(time_series)
+    ax.set_title("SAX")
+
+    i_start = 0
+    hlines = []
+    letters = []
+    # seg_letter is e.g. 0 for a, 1 for b.
+    for seg_letter_i in concepts: 
+        i_end = i_start + increment # exclusive end
+        seg_mean = np.mean(time_series[i_start : i_end])
+        color = get_color(seg_letter_i)
+        hline = ax.hlines(y=seg_mean, xmin=i_start, xmax=i_end-1, color=color, 
+                  linewidth=3)  # Horizontal line
+        i_start += increment
+        hlines.append(hline)
+        letters.append(alphabet[seg_letter_i])
+
+    ### TODO: Continue from here: Remove duplicates
+    ax.legend(hlines, letters)
     
-    ax.plot(samples)
-    return fig
+
+    # TODO: Add red boxes for most important parts
+
+
+def create_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_label):
+    """
+    Plots a figure of a time series sample with SAX labels. Marks important segments with a red box.
+    """
+
+    alphabet = list(string.ascii_lowercase[:saliencies.shape[1]])
+
+    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(9, 4))
+
+    ### Plot actual samples
+    plot_SAX(ax[0], time_series, concepts, saliencies, alphabet)
+
+    ### Plot heatmap visualization
+    heatmap = ax[1].imshow(saliencies, cmap='viridis', aspect='auto')
+
+    # Add colorbar to show the saliency scale
+    cbar = plt.colorbar(heatmap, ax=ax[1])
+    cbar.set_label("Importance (Saliency)", fontsize=20)
+
+    # Annotate the heatmap with letters and saliency values
+    for i in range(saliencies.shape[0]):  # Rows
+        for j in range(saliencies.shape[1]):  # Columns
+            # TODO: Added short fix to avoid negative zeros, maybe move this somewhere else
+            value = f"{abs(saliencies[i, j]):.2f}"  # Format saliency value to 2 decimal places
+            ax[1].text(j, i, f"{value}", ha='center', va='center', color='white')
+
+    # Set tick labels
+    ax[1].set_xticks(np.arange(saliencies.shape[1]))
+    ax[1].set_yticks(np.arange(saliencies.shape[0]))
+    ax[1].set_xticklabels(alphabet)
+    ax[1].set_yticklabels([f"Seg {i+1}" for i in range(saliencies.shape[0])])
 
     """
-    fig, ax = plt.subplots()
-    # Plot data on the axis
-    ax.plot(samples)
-    # Return the figure object
-    return fig
+    ### Plot simple table
+    ax[2].table(
+        cellText=table_expl,  # Data for the table
+        colLabels=letters,  # Letters of alphabet
+        rowLabels=[f"Seg {i}" for i in range(table_expl.shape[0])],  # Row headers
+        loc='center',  # Center the table
+        cellLoc='center',  # Center text in cells
+    )
     """
+
+    fig.suptitle(f"True Class: {true_label}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
+
+    return fig
 
 
 def create_expl_images(img, pred_attrs, table_expl_attrs, img_expl, true_class_name, pred_class_name, xticklabels):
@@ -281,7 +347,8 @@ def plot_confusion_matrix(y_true, y_pred, classes, normalize=True, title=None,
 
 def write_expls(net, data_loader, tagname, epoch, writer):
     """
-    Writes NeSy Concept Learner explanations to tensorboard writer.
+    Writes NeSy Concept Learner explanations to TensorBoard.
+    Shows which of the concepts from the first layer have the biggest effect on the prediction in the second layer.
     """
 
     net.eval()
@@ -294,70 +361,38 @@ def write_expls(net, data_loader, tagname, epoch, writer):
 
         output_cls, output_attr, preds = apply_net(concepts, net)
 
-        """
-        print("\nwrite_expl:\n")
-
-        print("output_cls")
-        print(output_cls.size())
-        print(output_cls)
-
-        print("output_attr")
-        print(output_attr.size())
-        print(output_attr)
-
-        print("preds")
-        print(preds.size())
-        print(preds)
-
-        print("labels")
-        print(labels.size())
-        print(labels)
-        
-        print("concepts")
-        print(concepts.size())
-        print(concepts)
-        """
-        """
-        # Network usage
-        input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
-        output_cls, output_attr = net(imgs)
-        preds = (output_cls > 0).float()"""
-        """
-        # convert sorting gt target set and gt table explanations to match the order of the predicted table
-        concepts, match_ids = hungarian_matching(output_attr.to('cuda'), concepts)
-        # table_expls = table_expls[:, match_ids][range(table_expls.shape[0]), range(table_expls.shape[0])] 
-        """ 
         # get explanations of set classifier
         table_saliencies = generate_intgrad_captum_table(net.set_cls, output_attr, preds)
 
-        # Add first 10 imgs/time series with their explanations to TensorBoard
-        for sample_id, (sample, concept, output, table_expl, true_label, pred_label) in enumerate(zip(
-                samples, concepts, output_attr, table_saliencies, labels, preds
+        """ 
+        for img_id, (img, gt_table, pred_table, table_expl, img_expl, true_label, pred_label, imgid) in enumerate(zip(
+                imgs, target_set, output_attr, table_saliencies,
+                img_saliencies, img_class_ids, preds,
+                img_ids
         )):
-            
-            """
-            for img_id, (img, gt_table, pred_table, table_expl, img_expl, true_label, pred_label, imgid) in enumerate(zip(
-                    labels, concepts, output_attr, table_saliencies,
-                    img_saliencies, img_class_ids, preds,
-                    img_ids
-            )):
-            """
-            # TODO: check how much is recyclable from create_expl_images
+            # unnormalize images
+            img = img / 2. + 0.5  # Rescale to [0, 1].
 
-            fig = create_expl(sample, concept, output, table_expl, true_label, pred_label)
-            
-            """ 
             fig = create_expl_images(np.array(transforms.ToPILImage()(img.cpu()).convert("RGB")),
                                            pred_table.detach().cpu().numpy(),
                                            table_expl.detach().cpu().numpy(),
                                            img_expl.detach().cpu().numpy(),
-                                           true_label, pred_label, attr_labels)
-             """
+                                           true_label, pred_label, attr_labels) """
+
+        # Add first 10 time series with their explanations to TensorBoard
+        for sample_id, (sample, concept, output, table_expl, true_label, pred_label) in enumerate(zip(
+                samples, concepts, output_attr, table_saliencies, labels, preds
+        )):
+            
+            fig = create_expl_SAX(sample.cpu().numpy(),
+                                  concept.cpu().numpy(),
+                                  output.cpu().numpy(),
+                                  table_expl.cpu().numpy(),
+                                  true_label, pred_label)
             
             writer.add_figure(f"{tagname}_{sample_id}", fig, epoch)
             if sample_id >= 10:
                 break
-
         break
 
 

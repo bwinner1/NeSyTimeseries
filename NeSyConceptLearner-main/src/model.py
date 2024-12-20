@@ -387,7 +387,7 @@ class SAXTransformer:
             dataset = np.append(dataset[:,0,:], meansToFill, axis = 1) 
             # append function automatically removes all 1s in array shape, add it manually:  
             dataset = np.expand_dims(dataset, 1)
-            print(f"Added {self.getEntity(fillers, 'mean')}")
+            print(f"SAX: Added {self.getEntity(fillers, 'mean')}")
             
         # Create a StandardScaler object
         scaler = StandardScaler()
@@ -431,7 +431,7 @@ class SAXTransformer:
 
     # Print a grid of samples from a given dataset
     # rows and columns have to be greater than 1
-    def drawGrid(self, dataset, dataset_scaled, dataset_sax, rows=2, columns=3, dataset_name="example_dataset"):
+    def plotGrid(self, dataset, dataset_scaled, dataset_sax, rows=2, columns=3, dataset_name="example_dataset"):
 
         # Define segments as pairs of (start, end) indices with constant values
         # segments = [(5, 20), (20, 30), (30, 50), (50, 70), (70, 80), (80, 95)]  # Segment boundaries
@@ -439,7 +439,6 @@ class SAXTransformer:
 
         time_steps = dataset.shape[2]
         assert time_steps % self.n_segments == 0, "Number of time frames has to be evenly dividable by the number of segments."
-
 
         increment = int(time_steps / self.n_segments)
 

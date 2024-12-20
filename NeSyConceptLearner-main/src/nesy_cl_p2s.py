@@ -350,9 +350,10 @@ def train(args):
 
         # TODO: Set value back to plot=True
 
-        plot = False
-        if(epoch == args.epochs - 1):
-            plot = True
+        #plot = False
+        #if(epoch == args.epochs - 1):
+        #    plot = True
+        plot = True
 
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
                         train=False, plot=plot, epoch=epoch)                       
