@@ -257,6 +257,12 @@ def train(args):
         ts_train = ts_train[: training_samples]
 
         ts_test = np.array(train_dataset['test']['dowel_deep_drawing_ow'])
+
+        # TODO: Add Shuffling to train and val datasets
+        labels_train = torch.tensor(train_dataset['train']['label'][:training_samples])
+        labels_val = torch.tensor(train_dataset['train']['label'][training_samples:])
+        labels_test = torch.tensor(train_dataset['test']['label'])
+
     else:
         print("Wrong dataset specifier")
         exit()
@@ -270,17 +276,15 @@ def train(args):
         concepts_test, _, _ = sax.transform(ts_test.reshape(ts_test.shape[0], 1, ts_test.shape[1]))
 
     ### TODO: Add other cases
-    #elif args.concept == "tsfresh":
+    elif args.concept == "tsfresh":
+        tsfresh = model.tsfreshTransformer()
+        concepts_train = tsfresh.transform(ts_train, labels_train)
+        print(concepts_train)
     #elif args.concept == "vq-vae":
     else:
         print("Wrong concept specifier")
         exit()
     
-    # TODO: Add Shuffling to train and val datasets
-
-    labels_train = torch.tensor(train_dataset['train']['label'][:training_samples])
-    labels_val = torch.tensor(train_dataset['train']['label'][training_samples:])
-    labels_test = torch.tensor(train_dataset['test']['label'])
 
     # Remove middle dimension from (samples, 1, concepts)
     concepts_train = torch.squeeze(torch.tensor(concepts_train))

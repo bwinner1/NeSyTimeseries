@@ -13,8 +13,9 @@ captum
 rtpt
 h5py
 
-# Added for SAX
+# Added for NeSy TS
 aeon
+tsfresh
 matplotlib
 huggingface-hub
 attrs==23.1.0

@@ -18,7 +18,7 @@ MODEL="ts-concept-learner-$NUM"
 #-------------------------------------------------------------------------------#
 # CLEVR-Hans3
 
-CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s --concept sax --n-segments 8 --alphabet-size 4 \
+CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s --concept tsfresh --n-segments 8 --alphabet-size 4 \
 --epochs 50 --name $MODEL --lr 0.0001 --batch-size 128 --seed 0 --num-workers 4 --mode train \
 #--no-cuda  # for cpu usage
 

@@ -1,14 +1,18 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
+import pandas as pd
 import math
 from torch import nn
+
 
 import datetime
 import datasets
 import matplotlib.pyplot as plt
 from aeon.transformations.collection.dictionary_based import SAX
 from aeon.datasets import load_unit_test
+from tsfresh.utilities.dataframe_functions import impute
+from tsfresh import extract_features, extract_relevant_features, select_features
 from matplotlib import colormaps
 from sklearn.preprocessing import StandardScaler
 
@@ -477,6 +481,34 @@ class SAXTransformer:
         plt.savefig(filename)
         plt.show()
     
+class tsfreshTransformer:
+    """ 
+    def __init__(self, n_segments=8, alphabet_size=4):
+        self.n_segments = n_segments
+        self.alphabet_size = alphabet_size
+        self.sax = SAX(self.n_segments, self.alphabet_size)
+ """
+    def transform(self, dataset, y):
+        # dataset, y = load_unit_test()
+        dataset = np.array(dataset)
+        # Probably no 
+        # dataset = np.squeeze(dataset)
+        y = pd.Series(y)
+
+        # Create indices using np.arange and repeat them for each time series
+        indices = np.repeat(np.arange(dataset.shape[0]), dataset.shape[1])
+
+        # Flatten the dataset and create the DataFrame
+        df = pd.DataFrame({
+            "ts_id": indices,
+            "ts": dataset.flatten()
+        })
+
+        X_filtered = extract_relevant_features(df, y, column_id='ts_id')
+        return X_filtered
+
+
+
 
 
 
