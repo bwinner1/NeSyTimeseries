@@ -383,6 +383,8 @@ class SAXTransformer:
         self.sax = SAX(self.n_segments, self.alphabet_size)
 
     def transform(self, dataset):
+        ### TODO: Add the third dimension here, and remove it at the end of the method
+
         # Make sure that number of time steps is dividable by n_segments
         remainder = dataset.shape[2] % self.n_segments
         if(remainder != 0):
@@ -488,7 +490,8 @@ class tsfreshTransformer:
         self.alphabet_size = alphabet_size
         self.sax = SAX(self.n_segments, self.alphabet_size)
  """
-    def transform(self, dataset, y):
+    @staticmethod
+    def transform(dataset, y):
         # dataset, y = load_unit_test()
         dataset = np.array(dataset)
         # Probably no 
@@ -504,11 +507,13 @@ class tsfreshTransformer:
             "ts": dataset.flatten()
         })
 
-        X_filtered = extract_relevant_features(df, y, column_id='ts_id')
-        return X_filtered
+        # Only extract
+        X = extract_features(df, column_id='ts_id', impute_function=impute)
 
+        # Extract and filter
+        #X = extract_relevant_features(df, y, column_id='ts_id')
 
-
+        return torch.tensor(X.values, dtype=torch.float32)
 
 
 

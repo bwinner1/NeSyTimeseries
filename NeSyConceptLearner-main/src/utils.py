@@ -69,13 +69,10 @@ def norm_saliencies(saliencies):
 def generate_intgrad_captum_table(net, input, labels):
     labels = labels.to("cuda")
     explainer = IntegratedGradients(net)
-    
     saliencies = explainer.attribute(input, target=labels)
-    
     # remove negative attributions
     # TODO: Maybe don't though, for using non-existance of a letter (SAX) for prediction
     saliencies[saliencies < 0] = 0.
-
     """
     print("input")
     print(input)
@@ -92,11 +89,10 @@ def generate_intgrad_captum_table(net, input, labels):
 
     print("returnValue")
     print(returnValue)
-    """
-
     #print("saliencies")
     #print(saliencies)
     #print(saliencies.size())
+    """
     return saliencies
 
 

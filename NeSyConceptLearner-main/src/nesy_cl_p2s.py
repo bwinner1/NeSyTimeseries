@@ -178,7 +178,6 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         #preds = (output_cls > 0).float()
 """
         output_cls, output_attr, preds = apply_net(concepts, net, num_classes=args.alphabet_size)
-
         """
         #print(f"labels: {labels}")
         #print(f"output_cls: {output_cls}")
@@ -197,8 +196,6 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         # forward evaluation through the network
         # output_cls, output_attr = net(input)
  """
-
-
         """ 
         print("output_cls")
         print(output_cls)
@@ -243,6 +240,13 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
 def train(args):
     print("Running train method...")
+
+    # Create RTPT object
+    rtpt = RTPT(name_initials='BI', experiment_name=f"P2S NeSyCL for TS",
+                max_iterations=args.epochs)
+    # Start the RTPT tracking
+    rtpt.start()
+
     if args.dataset == "p2s":
 
         train_dataset = load_dataset('AIML-TUDA/P2S', 'Normal', download_mode='reuse_dataset_if_exists')
@@ -275,21 +279,21 @@ def train(args):
         concepts_val, _, _ = sax.transform(ts_val.reshape(ts_val.shape[0], 1, ts_val.shape[1]))
         concepts_test, _, _ = sax.transform(ts_test.reshape(ts_test.shape[0], 1, ts_test.shape[1]))
 
+        # Remove middle dimension from (samples, 1, concepts)   
+        concepts_train = torch.squeeze(torch.tensor(concepts_train))
+        concepts_val = torch.squeeze(torch.tensor(concepts_val))
+        concepts_test = torch.squeeze(torch.tensor(concepts_test))
+
     ### TODO: Add other cases
     elif args.concept == "tsfresh":
-        tsfresh = model.tsfreshTransformer()
-        concepts_train = tsfresh.transform(ts_train, labels_train)
-        print(concepts_train)
+        concepts_train = model.tsfreshTransformer.transform(ts_train, labels_train)
+        concepts_val = model.tsfreshTransformer.transform(ts_val, labels_val)
+        concepts_test = model.tsfreshTransformer.transform(ts_test, labels_test)
+
     #elif args.concept == "vq-vae":
     else:
         print("Wrong concept specifier")
         exit()
-    
-
-    # Remove middle dimension from (samples, 1, concepts)
-    concepts_train = torch.squeeze(torch.tensor(concepts_train))
-    concepts_val = torch.squeeze(torch.tensor(concepts_val))
-    concepts_test = torch.squeeze(torch.tensor(concepts_test))
 
     # Create Torch Tensors for TensorDataset
     ts_train = torch.tensor(ts_train)
@@ -336,12 +340,6 @@ def train(args):
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=0.000001)
 
     torch.backends.cudnn.benchmark = True
-
-    # Create RTPT object
-    rtpt = RTPT(name_initials='BI', experiment_name=f"P2S NeSy Concept Learner xil",
-                max_iterations=args.epochs)
-    # Start the RTPT tracking
-    rtpt.start()
 
     # tensorboard writer
     writer = utils.create_writer(args)
