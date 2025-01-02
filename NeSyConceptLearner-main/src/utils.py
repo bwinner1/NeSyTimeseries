@@ -72,7 +72,8 @@ def generate_intgrad_captum_table(net, input, labels):
     saliencies = explainer.attribute(input, target=labels)
     # remove negative attributions
     # TODO: Maybe don't though, for using non-existance of a letter (SAX) for prediction
-    saliencies[saliencies < 0] = 0.
+    #saliencies[saliencies < 0] = 0.
+    
     """
     print("input")
     print(input)
@@ -212,7 +213,7 @@ def create_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_
     plot_SAX(ax[0], time_series, concepts, saliencies, alphabet)
 
     ### Plot heatmap visualization
-    heatmap = ax[1].imshow(saliencies, cmap='viridis', aspect='auto')
+    heatmap = ax[1].imshow(saliencies, cmap='viridis', aspect='auto') # TODO: or try out plasma
 
     # Add colorbar to show the saliency scale
     cbar = plt.colorbar(heatmap, ax=ax[1])
@@ -222,7 +223,7 @@ def create_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_
     for i in range(saliencies.shape[0]):  # Rows
         for j in range(saliencies.shape[1]):  # Columns
             # TODO: Added short fix to avoid negative zeros, maybe move this somewhere else
-            value = f"{abs(saliencies[i, j]):.2f}"  # Format saliency value to 2 decimal places
+            value = f"{saliencies[i, j]:.2f}"  # Format saliency value to 2 decimal places
             ax[1].text(j, i, f"{value}", ha='center', va='center', color='white')
 
     # Set tick labels
@@ -341,7 +342,7 @@ def plot_confusion_matrix(y_true, y_pred, classes, normalize=True, title=None,
     return ax
 
 
-def write_expls(net, data_loader, tagname, epoch, writer):
+def write_expls(net, data_loader, tagname, epoch, writer, args):
     """
     Writes NeSy Concept Learner explanations to TensorBoard.
     Shows which of the concepts from the first layer have the biggest effect on the prediction in the second layer.
@@ -355,7 +356,7 @@ def write_expls(net, data_loader, tagname, epoch, writer):
         labels = labels.cuda()
         labels = labels.float()
 
-        output_cls, output_attr, preds = apply_net(concepts, net)
+        output_cls, output_attr, preds = apply_net(concepts, net, args)
 
         # get explanations of set classifier
         table_saliencies = generate_intgrad_captum_table(net.set_cls, output_attr, preds)

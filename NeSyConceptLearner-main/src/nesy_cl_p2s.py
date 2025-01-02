@@ -87,7 +87,7 @@ def run_test_final(net, loader, criterion, writer, args, datasplit):
             #output_cls, output_attr = net(input)
             #preds = (output_cls > 0).float()"""
 
-            output_cls, output_attr, preds = apply_net(concepts, net, num_classes=args.alphabet_size)
+            output_cls, output_attr, preds = apply_net(concepts, net, args)
 
             labels_all.extend(labels.cpu().numpy())
             preds_all.extend(preds.cpu().numpy())
@@ -177,7 +177,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         #output_cls, output_attr = net(input)
         #preds = (output_cls > 0).float()
 """
-        output_cls, output_attr, preds = apply_net(concepts, net, num_classes=args.alphabet_size)
+        output_cls, output_attr, preds = apply_net(concepts, net, args)
         """
         #print(f"labels: {labels}")
         #print(f"output_cls: {output_cls}")
@@ -224,7 +224,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
         # Plot predictions in Tensorboard
         if plot and not(i % iters_per_epoch):
-            utils.write_expls(net, loader, f"Expl/{split}", epoch, writer)
+            utils.write_expls(net, loader, f"Expl/{split}", epoch, writer, args)
 
     bal_acc = metrics.balanced_accuracy_score(labels_all, preds_all)
 
@@ -249,6 +249,7 @@ def train(args):
 
     if args.dataset == "p2s":
 
+        ### TODO: Change back to 'Normal'
         train_dataset = load_dataset('AIML-TUDA/P2S', 'Normal', download_mode='reuse_dataset_if_exists')
 
         # Extracting the time series data from the train and test dataset
@@ -270,10 +271,9 @@ def train(args):
     else:
         print("Wrong dataset specifier")
         exit()
-        
+
     if args.concept == "sax":
         sax = model.SAXTransformer(n_segments=args.n_segments, alphabet_size=args.alphabet_size)
-
         """ 
         # Adding a third dimension, in the middle of the shape, as needed for SAX
         concepts_train, _, _ = sax.transform(ts_train.reshape(ts_train.shape[0], 1, ts_train.shape[1]))
@@ -335,7 +335,7 @@ def train(args):
 
     if args.concept == "sax":
         net = model.NeSyConceptLearner(n_attr=args.alphabet_size, n_set_heads=args.set_heads, device=args.device)
-    elif args.concepts == "tsfresh":
+    elif args.concept == "tsfresh":
         net = model.NeSyConceptLearner(n_attr=args.alphabet_size, n_set_heads=args.set_heads, device=args.device)
     # elif ...
     else:
@@ -401,7 +401,7 @@ def train(args):
     checkpoint = torch.load(glob.glob(os.path.join(writer.log_dir, "model_*_bestvalloss*.pth"))[0])
     net.load_state_dict(checkpoint['weights'])
     net.eval()
-    print("\nModel loaded from checkpoint for final evaluation\n")
+    print("\nModel loaded from checkpoint for final evaluation, printing test and val statistics::\n")
 
     acc_test = get_confusion_from_ckpt(net, test_loader, criterion, args=args, datasplit='test_best',
                             writer=writer)
@@ -524,19 +524,28 @@ def plot(args):
     assert args.conf_version == 'CLEVR-Hans3'
     utils.save_expls(net, test_loader, "test", save_path=save_dir)
 
-def apply_net(input, net, num_classes=0):
+def apply_net(input, net, args):
     """
-    # Old version:
+    Apply given network. Depending on the chosen symbolizer, 
+    the input will be prepared accordingly. F.e. the input for SAX will be one-hot encoded
+    """
+
+    """
+    # Old version:  
     # forward evaluation through the network
     # output_cls, output_attr = net(imgs)
     # class prediction
     # _, preds = torch.max(output_cls, 1)"""
 
-    # Network usage
-    # input_one_hot = nn.functional.one_hot(input, num_classes=num_classes)
+    # Preparing the input
+    if(args.concept == "sax"):
+        input = nn.functional.one_hot(input, num_classes=args.alphabet_size)
+
+    # Applying the SetTransformer
     output_cls, output_attr = net(input)
     # preds = (output_cls > 0).float()
     _, preds = torch.max(output_cls, 1)
+
     """
     print("input")
     print(input)
@@ -570,7 +579,6 @@ def main():
         alphabet_sizes = (4, 6, 8, 10)
         set_heads = (1, 2, 4, 8, 16)
          """
-
 
         test_accuracies = []
         val_accuracies = []

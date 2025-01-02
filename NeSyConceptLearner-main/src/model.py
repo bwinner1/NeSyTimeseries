@@ -13,6 +13,8 @@ from aeon.transformations.collection.dictionary_based import SAX
 from aeon.datasets import load_unit_test
 from tsfresh.utilities.dataframe_functions import impute
 from tsfresh import extract_features, extract_relevant_features, select_features
+from tsfresh.feature_extraction import ComprehensiveFCParameters, EfficientFCParameters, MinimalFCParameters
+
 from matplotlib import colormaps
 from sklearn.preprocessing import StandardScaler
 
@@ -512,11 +514,16 @@ class tsfreshTransformer:
             "ts": dataset.flatten()
         })
 
+        # Possible Function Calculator Parameters:
+        # ComprehensiveFCParameters, EfficientFCParameters, MinimalFCParameters
+
         # Only extract
-        X = extract_features(df, column_id='ts_id', impute_function=impute)
+        # X = extract_features(df, column_id='ts_id', impute_function=impute,
+                            #   default_fc_parameters=ComprehensiveFCParameters())
 
         # Extract and filter
-        #X = extract_relevant_features(df, y, column_id='ts_id')
+        X = extract_relevant_features(df, y, column_id='ts_id',
+                                       default_fc_parameters=MinimalFCParameters())
 
         return torch.tensor(X.values, dtype=torch.float32)
 
@@ -572,7 +579,7 @@ class NeSyConceptLearner(nn.Module):
         """
         :param attrs: 3D Tensor[batch, sets, features]
         """
-        attrs = F.one_hot(attrs, num_classes = self.n_attr)
+        # attrs = F.one_hot(attrs, num_classes = self.n_attr)
         attrs = attrs.float()
         cls = self.set_cls(attrs)
         return cls.squeeze(), attrs
