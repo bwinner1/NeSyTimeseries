@@ -185,19 +185,19 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     for seg_letter_i in concepts: 
         i_end = i_start + increment # exclusive end
         seg_mean = np.mean(time_series[i_start : i_end])
+        letter = alphabet[seg_letter_i]
         color = get_color(seg_letter_i)
         hline = ax.hlines(y=seg_mean, xmin=i_start, xmax=i_end-1, color=color, 
-                  linewidth=3)  # Horizontal line
+                  linewidth=3, label=letter)  # Horizontal line
         i_start += increment
-        hlines.append(hline)
-        letters.append(alphabet[seg_letter_i])
+        if letter not in letters:
+            letters.append(letter)
+            hlines.append(hline)
 
-    ### TODO: Continue from here: Remove duplicates
-    ax.legend(hlines, letters)
-    
-
-    # TODO: Add red boxes for most important parts
-
+    sorted_indices = sorted(range(len(letters)), key=lambda i: letters[i], reverse=True)
+    sorted_letters = [letters[i] for i in sorted_indices]
+    sorted_hlines = [hlines[i] for i in sorted_indices]
+    ax.legend(handles=sorted_hlines, labels=sorted_letters)
 
 def create_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_label):
     """

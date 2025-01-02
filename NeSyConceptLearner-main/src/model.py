@@ -383,7 +383,9 @@ class SAXTransformer:
         self.sax = SAX(self.n_segments, self.alphabet_size)
 
     def transform(self, dataset):
-        ### TODO: Add the third dimension here, and remove it at the end of the method
+
+        # Add a third dimension in the middle of the shape, as needed for SAX
+        dataset = dataset.reshape(dataset.shape[0], 1, dataset.shape[1])
 
         # Make sure that number of time steps is dividable by n_segments
         remainder = dataset.shape[2] % self.n_segments
@@ -405,8 +407,11 @@ class SAXTransformer:
 
         # Fit and transform the data
         dataset_sax = self.sax.fit_transform(dataset_scaled)
+
+        # Remove the inner dimension from output
+        dataset_sax = torch.squeeze(torch.tensor(dataset_sax))
         
-        return dataset_sax, dataset, dataset_scaled
+        return dataset_sax
 
     @staticmethod
     def getEntity(number, name):

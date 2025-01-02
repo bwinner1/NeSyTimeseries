@@ -270,10 +270,11 @@ def train(args):
     else:
         print("Wrong dataset specifier")
         exit()
-
+        
     if args.concept == "sax":
         sax = model.SAXTransformer(n_segments=args.n_segments, alphabet_size=args.alphabet_size)
 
+        """ 
         # Adding a third dimension, in the middle of the shape, as needed for SAX
         concepts_train, _, _ = sax.transform(ts_train.reshape(ts_train.shape[0], 1, ts_train.shape[1]))
         concepts_val, _, _ = sax.transform(ts_val.reshape(ts_val.shape[0], 1, ts_val.shape[1]))
@@ -283,6 +284,11 @@ def train(args):
         concepts_train = torch.squeeze(torch.tensor(concepts_train))
         concepts_val = torch.squeeze(torch.tensor(concepts_val))
         concepts_test = torch.squeeze(torch.tensor(concepts_test))
+ """
+        concepts_train = sax.transform(ts_train)
+        concepts_val = sax.transform(ts_val)
+        concepts_test = sax.transform(ts_test)
+
 
     ### TODO: Add other cases
     elif args.concept == "tsfresh":
@@ -327,10 +333,16 @@ def train(args):
     test_dataset = TensorDataset(concepts_test, labels_test, ts_test)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
-    
-    net = model.NeSyConceptLearner(n_attr=args.alphabet_size, n_set_heads=args.set_heads, device=args.device)
-    net = net.to(args.device)
+    if args.concept == "sax":
+        net = model.NeSyConceptLearner(n_attr=args.alphabet_size, n_set_heads=args.set_heads, device=args.device)
+    elif args.concepts == "tsfresh":
+        net = model.NeSyConceptLearner(n_attr=args.alphabet_size, n_set_heads=args.set_heads, device=args.device)
+    # elif ...
+    else:
+        pass
 
+
+    net = net.to(args.device)
     # only optimize the set transformer classifier for now, i.e. freeze the state predictor
     optimizer = torch.optim.Adam(
         [p for name, p in net.named_parameters() if p.requires_grad and 'set_cls' in name], lr=args.lr
