@@ -543,6 +543,7 @@ def apply_net(input, net, args):
 
     # Applying the SetTransformer
     output_cls, output_attr = net(input)
+    
     # preds = (output_cls > 0).float()
     _, preds = torch.max(output_cls, 1)
 
