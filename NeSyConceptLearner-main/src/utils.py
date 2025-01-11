@@ -387,7 +387,7 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
             writer.add_figure(f"{tagname}_{sample_id}", fig, epoch)
             ### TODO: Delete the following, just preparing adding a second figure with 
             # fig1, fig2 = create_expl_SAX(...)
-            writer.add_figure(f"sal_{sample_id}", fig, epoch)
+            writer.add_figure(f"Test/_{sample_id}", fig, epoch)
             if sample_id >= 10:
                 break
         break
