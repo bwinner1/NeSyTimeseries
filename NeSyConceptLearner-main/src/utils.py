@@ -208,17 +208,18 @@ def create_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_
 
     alphabet = list(string.ascii_lowercase[:saliencies.shape[1]])
 
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(9, 4))
+    fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
+    fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
 
     ### Plot actual samples
-    plot_SAX(ax[0], time_series, concepts, saliencies, alphabet)
+    plot_SAX(ax1, time_series, concepts, saliencies, alphabet)
 
     ### Plot heatmap visualization
-    heatmap = ax[1].imshow(saliencies, cmap='viridis', aspect='auto', vmin=-1.0, vmax=1.0) # TODO: or try out plasma
-    ax[1].set_title("Table values have been multiplied by 100.")
+    heatmap = ax2.imshow(saliencies, cmap='viridis', aspect='auto', vmin=-1.0, vmax=1.0) # TODO: or try out plasma
+    ax2.set_title("Table values have been multiplied by 100.")
 
     # Add colorbar to show the saliency scale
-    cbar = plt.colorbar(heatmap, ax=ax[1])
+    cbar = plt.colorbar(heatmap, ax=ax2)
     cbar.set_label("Importance (Saliency)", fontsize=20)
 
     # Annotate the heatmap with letters and saliency values
@@ -226,23 +227,21 @@ def create_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_
         for j in range(saliencies.shape[1]):  # Columns
             # TODO: Added short fix to avoid negative zeros, maybe move this somewhere else
             # value = f"{saliencies[i, j]:.2f}"  # Format saliency value to 2 decimal places
-            value = f"{saliencies[i, j]*100:.0f}"  # Format saliency value to 2 decimal places
-            ax[1].text(j, i, f"{value}", ha='center', va='center', color='white')
+            value = f"{saliencies[i, j]:.2f}"  # Format saliency value to 2 decimal places
+            ax2.text(j, i, f"{value}", ha='center', va='center', color='white')
 
     # Set tick labels
-    ax[1].set_xticks(np.arange(saliencies.shape[1]))
-    ax[1].set_yticks(np.arange(saliencies.shape[0]))
-    ax[1].set_xticklabels(alphabet)
+    ax2.set_xticks(np.arange(saliencies.shape[1]))
+    ax2.set_yticks(np.arange(saliencies.shape[0]))
+    ax2.set_xticklabels(alphabet)
     interval = saliencies.shape[0] / 8
     # Print segment names in given interval, instead of on every row
     ytick_labels = [f"Seg {i+1}" if i % interval == 0 else "" for i in range(saliencies.shape[0])]
-    ax[1].set_yticklabels(ytick_labels)
+    ax2.set_yticklabels(ytick_labels)
 
+    fig1.suptitle(f"True Class: {true_label}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
 
-
-    fig.suptitle(f"True Class: {true_label}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
-
-    return fig
+    return fig1, fig2
 
 
 def create_expl_images(img, pred_attrs, table_expl_attrs, img_expl, true_class_name, pred_class_name, xticklabels):
@@ -378,16 +377,14 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 samples, concepts, output_attr, table_saliencies, labels, preds
         )):
             
-            fig = create_expl_SAX(sample.cpu().numpy(),
+            fig1, fig2 = create_expl_SAX(sample.cpu().numpy(),
                                   concept.cpu().numpy(),
                                   output.cpu().numpy(),
                                   table_expl.cpu().numpy(),
                                   true_label, pred_label)
             
-            writer.add_figure(f"{tagname}_{sample_id}", fig, epoch)
-            ### TODO: Delete the following, just preparing adding a second figure with 
-            # fig1, fig2 = create_expl_SAX(...)
-            writer.add_figure(f"Test/_{sample_id}", fig, epoch)
+            writer.add_figure(f"{tagname}_{sample_id}_A", fig1, epoch)
+            writer.add_figure(f"{tagname}_{sample_id}_B", fig2, epoch)
             if sample_id >= 10:
                 break
         break
