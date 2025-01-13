@@ -498,7 +498,7 @@ class tsfreshTransformer:
         self.sax = SAX(self.n_segments, self.alphabet_size)
  """
     @staticmethod
-    def transform(dataset, y):
+    def transform(dataset, y, filtered_columns=None):
         # dataset, y = load_unit_test()
         dataset = np.array(dataset)
         # Probably no 
@@ -518,14 +518,24 @@ class tsfreshTransformer:
         # ComprehensiveFCParameters, EfficientFCParameters, MinimalFCParameters
 
         # Only extract
-        # X = extract_features(df, column_id='ts_id', impute_function=impute,
-                            #   default_fc_parameters=ComprehensiveFCParameters())
+        X = extract_features(df, column_id='ts_id', impute_function=impute,
+                              default_fc_parameters=MinimalFCParameters())
 
         # Extract and filter
-        X = extract_relevant_features(df, y, column_id='ts_id',
-                                       default_fc_parameters=MinimalFCParameters())
+        # X = extract_relevant_features(df, y, column_id='ts_id',
+        #                                default_fc_parameters=MinimalFCParameters())
+        
+        #If no columns are given (train dataset), then use select_features from tsfresh package
+        if filtered_columns is None:
+            X_filtered = select_features(X, y)
+            filtered_columns = X_filtered.columns
+        
+        # If columns are given (train, val), then select the same for the train and test dataset
+        else:
+            X_filtered = X[filtered_columns]
+        print(X.shape)
 
-        return torch.tensor(X.values, dtype=torch.float32)
+        return torch.tensor(X_filtered.values, dtype=torch.float32), filtered_columns
 
 
 
@@ -540,7 +550,7 @@ class NeSyConceptLearner(nn.Module):
                  device='cuda'):
         """ 
         For BCEWithLogitsLoss n_classes is 1, as network should have a binary output, either defect or not
-        Note: set_transf_hidden % n_set_heads != 0
+        Note: set_transf_hidden % n_set_heads == 0 has to true!
 
         #old version
     def __init__(self, n_classes, n_slots=1, n_iters=3, n_attr=18, n_set_heads=4, set_transf_hidden=128,
@@ -579,7 +589,6 @@ class NeSyConceptLearner(nn.Module):
         """
         :param attrs: 3D Tensor[batch, sets, features]
         """
-        # attrs = F.one_hot(attrs, num_classes = self.n_attr)
         attrs = attrs.float()
         cls = self.set_cls(attrs)
         return cls.squeeze(), attrs

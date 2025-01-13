@@ -82,10 +82,6 @@ def run_test_final(net, loader, criterion, writer, args, datasplit):
             #labels = labels.float()
         
             # Network usage
-            """
-            #input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
-            #output_cls, output_attr = net(input)
-            #preds = (output_cls > 0).float()"""
 
             output_cls, output_attr, preds = apply_net(concepts, net, args)
 
@@ -138,77 +134,8 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         concepts = concepts.to(args.device)
         labels = labels.to(args.device)
 
-        # Use the following only for BCEWithLogitsLoss():
-        # labels = labels.float()
-        
-        """
-        #print(f"\niteration {i}:")
-        #print("concepts")
-        #print(concepts.size())
-        #print(labels)
-
-        time_series, labels, speed, mask = sample.values()
-
-                labels = sample['label']
-        speeds = sample['todospeed']
-
-        concepts_list = sample['dowel_deep_drawing_ow'][0]
-        concepts = torch.stack(concepts_list).T
-        # converts list of size (n_segments x Tensor (batch_size))
-        # into a Tensor of size (batch_size, n_segments)
-        
-        masks_list = sample['mask']
-        masks = torch.stack(masks_list).T
-        # converts list 
-        # into a Tensor of size (batch_size, time_series)
-
-        print()
-        print(concepts.size())
-        print(labels.size())
-        print(speeds.size())
-        print(masks.size())
-        input = (concepts_list, speeds, masks_list)
- """
-        
         # Network usage
-        """
-        # apply one hot key encoding
-        #input = nn.functional.one_hot(concepts, num_classes=args.alphabet_size)
-        #output_cls, output_attr = net(input)
-        #preds = (output_cls > 0).float()
-"""
         output_cls, output_attr, preds = apply_net(concepts, net, args)
-        """
-        #print(f"labels: {labels}")
-        #print(f"output_cls: {output_cls}")
-        #print(f"preds: {preds}")
-
-        #print("labels")
-        #print(labels.size())
-
-        # input should have dimensions(batch_size,  time steps, features)
-        #input = concepts.permute(0, 2, 1)
-        
-        #print("input:")
-        #print(input)
-        #print(input.size())
-
-        # forward evaluation through the network
-        # output_cls, output_attr = net(input)
- """
-        """ 
-        print("output_cls")
-        print(output_cls)
-        print(output_cls.size())
-        
-        print("preds")
-        print(preds)
-        print(preds.size())
-
-        print("labels")
-        print(labels)
-        print(labels.size()) 
-         """
 
         loss = criterion(output_cls, labels)
 
@@ -292,9 +219,9 @@ def train(args):
 
     ### TODO: Add other cases
     elif args.concept == "tsfresh":
-        concepts_train = model.tsfreshTransformer.transform(ts_train, labels_train)
-        concepts_val = model.tsfreshTransformer.transform(ts_val, labels_val)
-        concepts_test = model.tsfreshTransformer.transform(ts_test, labels_test)
+        concepts_train, filtered_columns = model.tsfreshTransformer.transform(ts_train, labels_train)
+        concepts_val, _ = model.tsfreshTransformer.transform(ts_val, labels_val, filtered_columns)
+        concepts_test, _ = model.tsfreshTransformer.transform(ts_test, labels_test, filtered_columns)
 
     #elif args.concept == "vq-vae":
     else:
@@ -334,9 +261,10 @@ def train(args):
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
     if args.concept == "sax":
-        net = model.NeSyConceptLearner(n_attr=args.alphabet_size, n_set_heads=args.set_heads, device=args.device)
+        net = model.NeSyConceptLearner(n_attr=args.alphabet_size, device=args.device)
     elif args.concept == "tsfresh":
-        net = model.NeSyConceptLearner(n_attr=args.alphabet_size, n_set_heads=args.set_heads, device=args.device)
+        # net = model.NeSyConceptLearner(n_attr=1, device=args.device)
+        net = model.NeSyConceptLearner(n_attr=concepts_train.size(1), device=args.device)
     # elif ...
     else:
         pass
@@ -391,11 +319,8 @@ def train(args):
         rtpt.step()
 
     # load best model for final evaluation
-    # net = model.NeSyConceptLearner(args, n_slots=args.n_slots, n_iters=args.n_iters_slot_att, n_attr=args.n_attr,
-    #                        set_transf_hidden=args.set_transf_hidden, category_ids=args.category_ids,
-    #                        device=args.device)
     
-    net = model.NeSyConceptLearner(n_attr=args.alphabet_size, n_set_heads=args.set_heads, device=args.device)
+    net = model.NeSyConceptLearner(n_attr=args.alphabet_size, device=args.device)
     net = net.to(args.device)
 
     checkpoint = torch.load(glob.glob(os.path.join(writer.log_dir, "model_*_bestvalloss*.pth"))[0])
@@ -537,6 +462,10 @@ def apply_net(input, net, args):
     # class prediction
     # _, preds = torch.max(output_cls, 1)"""
 
+    print("input_old")
+    print(input)
+    print(input.size())
+
     # Preparing the input
     if(args.concept == "sax"):
         input = nn.functional.one_hot(input, num_classes=args.alphabet_size)
@@ -547,13 +476,12 @@ def apply_net(input, net, args):
     # preds = (output_cls > 0).float()
     _, preds = torch.max(output_cls, 1)
 
-    """
-    print("input")
+    print("input_new")
     print(input)
     print("output_cls")
     print(output_cls)
     print("preds")
-    print(preds) """
+    print(preds) 
     
     return output_cls, output_attr, preds
 
@@ -561,7 +489,7 @@ def main():
     args = get_args()
     if args.mode == 'train':
         torch.cuda.empty_cache()
-        args.set_heads = 4
+        # args.set_heads = 4
         train(args)
     elif args.mode == 'test':
         test(args)
