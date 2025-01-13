@@ -498,7 +498,7 @@ class tsfreshTransformer:
         self.sax = SAX(self.n_segments, self.alphabet_size)
  """
     @staticmethod
-    def transform(dataset, y, filtered_columns=None):
+    def transform(dataset, y, filtered_columns=None, setting="min"):
         # dataset, y = load_unit_test()
         dataset = np.array(dataset)
         # Probably no 
@@ -517,13 +517,18 @@ class tsfreshTransformer:
         # Possible Function Calculator Parameters:
         # ComprehensiveFCParameters, EfficientFCParameters, MinimalFCParameters
 
+        fcparams = {"slow" : ComprehensiveFCParameters(),
+                    "middle" : EfficientFCParameters(),
+                    "fast" : MinimalFCParameters()}
         # Only extract
         X = extract_features(df, column_id='ts_id', impute_function=impute,
-                              default_fc_parameters=MinimalFCParameters())
-
+                              default_fc_parameters=fcparams[setting])
+        
+        """
         # Extract and filter
         # X = extract_relevant_features(df, y, column_id='ts_id',
         #                                default_fc_parameters=MinimalFCParameters())
+         """
         
         #If no columns are given (train dataset), then use select_features from tsfresh package
         if filtered_columns is None:
@@ -533,7 +538,7 @@ class tsfreshTransformer:
         # If columns are given (train, val), then select the same for the train and test dataset
         else:
             X_filtered = X[filtered_columns]
-        print(X.shape)
+        # print(X.shape)
 
         # Convert the pd to a tensor, add an inner dimension
         return torch.tensor(X_filtered.values, dtype=torch.float32).unsqueeze(1), filtered_columns

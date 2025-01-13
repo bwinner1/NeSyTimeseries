@@ -62,14 +62,23 @@ def get_args():
                         help='number of attributes per object')
     """
     
-    # SAX params
     parser.add_argument('--concept', choices=["sax", "tsfresh", "vq-vae"],
                         help='concept that should be applied to times series' )
+    
+    # SAX params
     parser.add_argument('--n-segments', default=8, type=int,
                         help='number of sax segments')
     parser.add_argument('--alphabet-size', default=4, type=int,
                         help='alphabet size for sax')
 
+    # tsfresh params
+    parser.add_argument(
+        "--load-ts", action="store_true",
+          help="Load previous tsfresh data, don't run tsfresh"
+    )
+    parser.add_argument('--ts-setting', choices=["fast", "middle", "slow"],
+                        help='function calculator parameter for feature \
+                              extraction in tsfresh' )
 
     args = parser.parse_args()
 

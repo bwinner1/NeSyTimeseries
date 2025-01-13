@@ -219,9 +219,21 @@ def train(args):
 
     ### TODO: Add other cases
     elif args.concept == "tsfresh":
-        concepts_train, filtered_columns = model.tsfreshTransformer.transform(ts_train, labels_train)
-        concepts_val, _ = model.tsfreshTransformer.transform(ts_val, labels_val, filtered_columns)
-        concepts_test, _ = model.tsfreshTransformer.transform(ts_test, labels_test, filtered_columns)
+        if args.load_ts:
+            # Load previous .pt files
+            concepts_train = torch.load(f'tsfresh_{args.ts_setting}_train.pt')
+            concepts_val = torch.load(f'tsfresh_{args.ts_setting}_val.pt')
+            concepts_test = torch.load(f'tsfresh_{args.ts_setting}_test.pt')
+            pass
+        else:
+            # Use tsfresh and save extracted features into a .pt file
+            concepts_train, filtered_columns = model.tsfreshTransformer.transform(ts_train, labels_train, setting=args.ts_setting)
+            concepts_val, _ = model.tsfreshTransformer.transform(ts_val, labels_val, filtered_columns, setting=args.ts_setting)
+            concepts_test, _ = model.tsfreshTransformer.transform(ts_test, labels_test, filtered_columns, setting=args.ts_setting)
+
+            torch.save(concepts_train, f'tsfresh_{args.ts_setting}_train.pt')
+            torch.save(concepts_val, f'tsfresh_{args.ts_setting}_val.pt')
+            torch.save(concepts_test, f'tsfresh_{args.ts_setting}_test.pt')
 
     #elif args.concept == "vq-vae":
     else:
@@ -260,10 +272,13 @@ def train(args):
     test_dataset = TensorDataset(concepts_test, labels_test, ts_test)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
+    # In general, the SetTransformer requires the following shape:
+    # (batch_size * num_elements * feature_dim)
+    # n_attr being equal the feature_dim
     if args.concept == "sax":
         net = model.NeSyConceptLearner(n_attr=args.alphabet_size, device=args.device)
     elif args.concept == "tsfresh":
-        # net = model.NeSyConceptLearner(n_attr=1, device=args.device)
+        # n_attr is set to the 
         net = model.NeSyConceptLearner(n_attr=concepts_train.size(2), device=args.device)
     # elif ...
     else:
@@ -295,7 +310,7 @@ def train(args):
         #plot = False
         #if(epoch == args.epochs - 1):
         #    plot = True
-        plot = True
+        plot = False
 
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
                         train=False, plot=plot, epoch=epoch)                       
@@ -320,8 +335,15 @@ def train(args):
 
     # load best model for final evaluation
     
-    net = model.NeSyConceptLearner(n_attr=args.alphabet_size, device=args.device)
-    net = net.to(args.device)
+    if args.concept == "sax":
+        net = model.NeSyConceptLearner(n_attr=args.alphabet_size, device=args.device)
+    elif args.concept == "tsfresh":
+        # n_attr is set to the 
+        net = model.NeSyConceptLearner(n_attr=concepts_train.size(2), device=args.device)
+    # elif ...
+    else:
+        pass
+
 
     checkpoint = torch.load(glob.glob(os.path.join(writer.log_dir, "model_*_bestvalloss*.pth"))[0])
     net.load_state_dict(checkpoint['weights'])
@@ -455,16 +477,10 @@ def apply_net(input, net, args):
     the input will be prepared accordingly. F.e. the input for SAX will be one-hot encoded
     """
 
-    """
-    # Old version:  
-    # forward evaluation through the network
-    # output_cls, output_attr = net(imgs)
-    # class prediction
-    # _, preds = torch.max(output_cls, 1)"""
 
-    print("input_old")
-    print(input)
-    print(input.size())
+    # print("input_old")
+    # print(input)
+    # print(input.size())
 
     # Preparing the input
     if(args.concept == "sax"):
@@ -476,12 +492,12 @@ def apply_net(input, net, args):
     # preds = (output_cls > 0).float()
     _, preds = torch.max(output_cls, 1)
 
-    print("input_new")
-    print(input)
-    print("output_cls")
-    print(output_cls)
-    print("preds")
-    print(preds) 
+    # print("input_new")
+    # print(input)
+    # print("output_cls")
+    # print(output_cls)
+    # print("preds")
+    # print(preds) 
     
     return output_cls, output_attr, preds
 

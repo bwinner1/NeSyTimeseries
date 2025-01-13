@@ -389,7 +389,7 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 break
         break
 
-
+# Is used only in plot(), which currently isn't being used. 
 def save_expls(net, data_loader, tagname, save_path):
     """
     Stores the explanation plots at the specified location.
