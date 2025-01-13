@@ -535,7 +535,8 @@ class tsfreshTransformer:
             X_filtered = X[filtered_columns]
         print(X.shape)
 
-        return torch.tensor(X_filtered.values, dtype=torch.float32), filtered_columns
+        # Convert the pd to a tensor, add an inner dimension
+        return torch.tensor(X_filtered.values, dtype=torch.float32).unsqueeze(1), filtered_columns
 
 
 

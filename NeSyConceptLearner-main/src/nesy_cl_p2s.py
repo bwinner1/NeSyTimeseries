@@ -264,7 +264,7 @@ def train(args):
         net = model.NeSyConceptLearner(n_attr=args.alphabet_size, device=args.device)
     elif args.concept == "tsfresh":
         # net = model.NeSyConceptLearner(n_attr=1, device=args.device)
-        net = model.NeSyConceptLearner(n_attr=concepts_train.size(1), device=args.device)
+        net = model.NeSyConceptLearner(n_attr=concepts_train.size(2), device=args.device)
     # elif ...
     else:
         pass

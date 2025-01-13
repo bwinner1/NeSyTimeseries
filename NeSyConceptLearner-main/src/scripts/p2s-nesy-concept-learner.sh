@@ -20,10 +20,10 @@ MODEL="ts-concept-learner-$NUM"
 
 # Set epochs back to 50
 CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s \
---concept tsfresh \
+--concept sax --n-segments 7  --alphabet-size 3 \
 --epochs 50 --name $MODEL --lr 0.0001 --batch-size 15 --seed 0 --num-workers 4 --mode train \
 
-# --concept sax --n-segments 7  --alphabet-size 3 \
+# --concept tsfresh \
 
 # --no-cuda  # for cpu usage
 
