@@ -518,7 +518,7 @@ class tsfreshTransformer:
         # ComprehensiveFCParameters, EfficientFCParameters, MinimalFCParameters
 
         fcparams = {"slow" : ComprehensiveFCParameters(),
-                    "middle" : EfficientFCParameters(),
+                    "mid" : EfficientFCParameters(),
                     "fast" : MinimalFCParameters()}
         # Only extract
         X = extract_features(df, column_id='ts_id', impute_function=impute,

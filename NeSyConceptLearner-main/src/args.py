@@ -76,7 +76,7 @@ def get_args():
         "--load-ts", action="store_true",
           help="Load previous tsfresh data, don't run tsfresh"
     )
-    parser.add_argument('--ts-setting', choices=["fast", "middle", "slow"],
+    parser.add_argument('--ts-setting', choices=["fast", "mid", "slow"],
                         help='function calculator parameter for feature \
                               extraction in tsfresh' )
 
