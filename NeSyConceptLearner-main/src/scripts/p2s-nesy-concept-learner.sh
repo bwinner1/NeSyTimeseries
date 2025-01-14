@@ -1,14 +1,5 @@
 #!/bin/bash
 
-# old version
-#DEVICE=$1
-#NUM=$2
-#DATA=$3
-#MODEL="concept-learner-$NUM"
-#DATASET=clevr-hans-state
-#OUTPATH="out/clevr-state/$MODEL-$ITER"
-
-
 # CUDA DEVICE ID
 DEVICE=$1
 NUM=$2
@@ -22,6 +13,7 @@ MODEL="ts-concept-learner-$NUM"
 CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s \
 --concept tsfresh --load-ts --ts-setting slow \
 --epochs 50 --name $MODEL --lr 0.0001 --batch-size 128 --seed 0 --num-workers 4 --mode train \
+
 
 ### SAX
 # --concept sax --n-segments 7 --alphabet-size 3 \

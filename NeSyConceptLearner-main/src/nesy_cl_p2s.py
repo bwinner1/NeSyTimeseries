@@ -477,27 +477,20 @@ def apply_net(input, net, args):
     the input will be prepared accordingly. F.e. the input for SAX will be one-hot encoded
     """
 
-
-    # print("input_old")
-    # print(input)
-    # print(input.size())
-
     # Preparing the input
     if(args.concept == "sax"):
         input = nn.functional.one_hot(input, num_classes=args.alphabet_size)
 
+
+    print(f"old apply_net input and net device: {input.device}, {net.device}")
+    input = input.to(args.device)
+    net = net.to(args.device)
+    print(f"new apply_net input and net device: {input.device}, {net.device}")
     # Applying the SetTransformer
     output_cls, output_attr = net(input)
     
     # preds = (output_cls > 0).float()
     _, preds = torch.max(output_cls, 1)
-
-    # print("input_new")
-    # print(input)
-    # print("output_cls")
-    # print(output_cls)
-    # print("preds")
-    # print(preds) 
     
     return output_cls, output_attr, preds
 
