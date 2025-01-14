@@ -174,112 +174,112 @@ class SoftPositionEmbed(nn.Module):
         return inputs + self.dense(self.grid).view((-1, self.hidden_size, self.resolution, self.resolution))
 
 
-class SlotAttention_classifier(nn.Module):
-    """
-    The classifier of the set prediction architecture of Locatello et al. 2020
-    """
-    def __init__(self, in_channels, out_channels):
-        """
-        Builds the classifier for the set prediction architecture.
-        :param in_channels: Integer, input channel dimensions
-        :param out_channels: Integer, output channel dimensions
-        """
-        super(SlotAttention_classifier, self).__init__()
-        self.network = nn.Sequential(
-            nn.Linear(in_channels, in_channels),
-            nn.ReLU(inplace=True),
-            nn.Linear(in_channels, out_channels),
-            nn.Sigmoid()
-        )
+# class SlotAttention_classifier(nn.Module):
+#     """
+#     The classifier of the set prediction architecture of Locatello et al. 2020
+#     """
+#     def __init__(self, in_channels, out_channels):
+#         """
+#         Builds the classifier for the set prediction architecture.
+#         :param in_channels: Integer, input channel dimensions
+#         :param out_channels: Integer, output channel dimensions
+#         """
+#         super(SlotAttention_classifier, self).__init__()
+#         self.network = nn.Sequential(
+#             nn.Linear(in_channels, in_channels),
+#             nn.ReLU(inplace=True),
+#             nn.Linear(in_channels, out_channels),
+#             nn.Sigmoid()
+#         )
 
-    def forward(self, x):
-        return self.network(x)
+#     def forward(self, x):
+#         return self.network(x)
 
 
-class SlotAttention_model(nn.Module):
-    """
-    The set prediction slot attention architecture for CLEVR as in Locatello et al 2020.
-    """
-    def __init__(self, n_slots, n_iters, n_attr, category_ids,
-                 in_channels=3,
-                 encoder_hidden_channels=64,
-                 attention_hidden_channels=128,
-                 device="cuda"):
-        """
-        Builds the set prediction slot attention architecture.
-        :param n_slots: Integer, number of slots
-        :param n_iters: Integer, number of attention iterations
-        :param n_attr: Integer, number of attributes per object to predict
-        :param category_ids: List of Integers, specifying the boundaries of each attribute group, e.g. color
-        attributes are variables 10 to 17
-        :param in_channels: Integer, number of input channel dimensions
-        :param encoder_hidden_channels: Integer, number of encoder hidden channel dimensions
-        :param attention_hidden_channels: Integer, number of hidden channel dimensions for slot attention module
-        :param device: String, either 'cpu' or 'cuda'
-        """
-        super(SlotAttention_model, self).__init__()
-        self.n_slots = n_slots
-        self.n_iters = n_iters
-        self.n_attr = n_attr
-        self.category_ids = category_ids
-        self.n_attr = n_attr + 1  # additional slot to indicate if it is a object or empty slot
-        self.device = device
+# class SlotAttention_model(nn.Module):
+#     """
+#     The set prediction slot attention architecture for CLEVR as in Locatello et al 2020.
+#     """
+#     def __init__(self, n_slots, n_iters, n_attr, category_ids,
+#                  in_channels=3,
+#                  encoder_hidden_channels=64,
+#                  attention_hidden_channels=128,
+#                  device="cuda"):
+#         """
+#         Builds the set prediction slot attention architecture.
+#         :param n_slots: Integer, number of slots
+#         :param n_iters: Integer, number of attention iterations
+#         :param n_attr: Integer, number of attributes per object to predict
+#         :param category_ids: List of Integers, specifying the boundaries of each attribute group, e.g. color
+#         attributes are variables 10 to 17
+#         :param in_channels: Integer, number of input channel dimensions
+#         :param encoder_hidden_channels: Integer, number of encoder hidden channel dimensions
+#         :param attention_hidden_channels: Integer, number of hidden channel dimensions for slot attention module
+#         :param device: String, either 'cpu' or 'cuda'
+#         """
+#         super(SlotAttention_model, self).__init__()
+#         self.n_slots = n_slots
+#         self.n_iters = n_iters
+#         self.n_attr = n_attr
+#         self.category_ids = category_ids
+#         self.n_attr = n_attr + 1  # additional slot to indicate if it is a object or empty slot
+#         self.device = device
 
-        self.encoder_cnn = SlotAttention_encoder(in_channels=in_channels, hidden_channels=encoder_hidden_channels)
-        self.encoder_pos = SoftPositionEmbed(encoder_hidden_channels, (32, 32), device=device)
-        self.layer_norm = nn.LayerNorm(encoder_hidden_channels, eps=1e-05)
-        self.mlp = MLP(hidden_channels=encoder_hidden_channels)
-        self.slot_attention = SlotAttention(num_slots=n_slots, dim=encoder_hidden_channels, iters=n_iters, eps=1e-8,
-                                            hidden_dim=attention_hidden_channels)
-        self.mlp_classifier = SlotAttention_classifier(in_channels=encoder_hidden_channels, out_channels=self.n_attr)
+#         self.encoder_cnn = SlotAttention_encoder(in_channels=in_channels, hidden_channels=encoder_hidden_channels)
+#         self.encoder_pos = SoftPositionEmbed(encoder_hidden_channels, (32, 32), device=device)
+#         self.layer_norm = nn.LayerNorm(encoder_hidden_channels, eps=1e-05)
+#         self.mlp = MLP(hidden_channels=encoder_hidden_channels)
+#         self.slot_attention = SlotAttention(num_slots=n_slots, dim=encoder_hidden_channels, iters=n_iters, eps=1e-8,
+#                                             hidden_dim=attention_hidden_channels)
+#         self.mlp_classifier = SlotAttention_classifier(in_channels=encoder_hidden_channels, out_channels=self.n_attr)
 
-    def forward(self, x):
-        x = self.encoder_cnn(x)
-        x = self.encoder_pos(x)
-        x = torch.flatten(x, start_dim=2)
-        x = x.permute(0, 2, 1)
-        x = self.layer_norm(x)
-        x = self.mlp(x)
-        x = self.slot_attention(x)
-        x = self.mlp_classifier(x)
-        return x
+#     def forward(self, x):
+#         x = self.encoder_cnn(x)
+#         x = self.encoder_pos(x)
+#         x = torch.flatten(x, start_dim=2)
+#         x = x.permute(0, 2, 1)
+#         x = self.layer_norm(x)
+#         x = self.mlp(x)
+#         x = self.slot_attention(x)
+#         x = self.mlp_classifier(x)
+#         return x
 
-    def _transform_attrs(self, attrs):
-        """
-        receives the attribute predictions and binarizes them by computing the argmax per attribute group
-        :param attrs: 3D Tensor, [batch, n_slots, n_attrs] attribute predictions for a batch.
-        :return: binarized attribute predictions
-        """
-        presence = attrs[:, :, 0]
-        attrs_trans = attrs[:, :, 1:]
+#     def _transform_attrs(self, attrs):
+#         """
+#         receives the attribute predictions and binarizes them by computing the argmax per attribute group
+#         :param attrs: 3D Tensor, [batch, n_slots, n_attrs] attribute predictions for a batch.
+#         :return: binarized attribute predictions
+#         """
+#         presence = attrs[:, :, 0]
+#         attrs_trans = attrs[:, :, 1:]
 
-        # threshold presence prediction, i.e. where is an object predicted
-        presence = presence < 0.5
+#         # threshold presence prediction, i.e. where is an object predicted
+#         presence = presence < 0.5
 
-        # flatten first two dims
-        attrs_trans = attrs_trans.view(1, -1, attrs_trans.shape[2]).squeeze()
-        # binarize attributes
-        # set argmax per attr to 1, all other to 0, s.t. only zeros and ones are contained within graph
-        # NOTE: this way it is not differentiable!
-        bin_attrs = torch.zeros(attrs_trans.shape, device=self.device)
-        for i in range(len(self.category_ids) - 1):
-            # find the argmax within each category and set this to one
-            bin_attrs[range(bin_attrs.shape[0]),
-                      # e.g. x[:, 0:(3+0)], x[:, 3:(5+3)], etc
-                      (attrs_trans[:,
-                       self.category_ids[i]:self.category_ids[i + 1]].argmax(dim=1) + self.category_ids[i]).type(
-                          torch.LongTensor)] = 1
+#         # flatten first two dims
+#         attrs_trans = attrs_trans.view(1, -1, attrs_trans.shape[2]).squeeze()
+#         # binarize attributes
+#         # set argmax per attr to 1, all other to 0, s.t. only zeros and ones are contained within graph
+#         # NOTE: this way it is not differentiable!
+#         bin_attrs = torch.zeros(attrs_trans.shape, device=self.device)
+#         for i in range(len(self.category_ids) - 1):
+#             # find the argmax within each category and set this to one
+#             bin_attrs[range(bin_attrs.shape[0]),
+#                       # e.g. x[:, 0:(3+0)], x[:, 3:(5+3)], etc
+#                       (attrs_trans[:,
+#                        self.category_ids[i]:self.category_ids[i + 1]].argmax(dim=1) + self.category_ids[i]).type(
+#                           torch.LongTensor)] = 1
 
-        # reshape back to batch x n_slots x n_attrs
-        bin_attrs = bin_attrs.view(attrs.shape[0], attrs.shape[1], attrs.shape[2] - 1)
+#         # reshape back to batch x n_slots x n_attrs
+#         bin_attrs = bin_attrs.view(attrs.shape[0], attrs.shape[1], attrs.shape[2] - 1)
 
-        # add coordinates back
-        bin_attrs[:, :, :3] = attrs[:, :, 1:4]
+#         # add coordinates back
+#         bin_attrs[:, :, :3] = attrs[:, :, 1:4]
 
-        # redo presence zeroing
-        bin_attrs[presence, :] = 0
+#         # redo presence zeroing
+#         bin_attrs[presence, :] = 0
 
-        return bin_attrs
+#         return bin_attrs
 
 
 ############
@@ -552,7 +552,7 @@ class NeSyConceptLearner(nn.Module):
     """
     The Neuro-Symbolic Concept Learner of Stammer et al. 2021 based on Slot Attention and Set Transformer.
     """
-    def __init__(self, n_attr, n_classes = 2, n_set_heads = 4, set_transf_hidden = 128,
+    def __init__(self, n_input_dim, n_set_heads, set_transf_hidden, n_classes = 2,
                  device='cuda'):
         """ 
         For BCEWithLogitsLoss n_classes is 1, as network should have a binary output, either defect or not
@@ -573,13 +573,13 @@ class NeSyConceptLearner(nn.Module):
         super().__init__()
         self.device = device
         self.n_classes = n_classes
-        self.n_attr = n_attr
+        self.n_input_dim = n_input_dim
         
         # Concept Embedding Module
         # --- left out; is applied before the network ---
 
         # Reasoning module
-        self.set_cls = SetTransformer(dim_input=n_attr, dim_hidden=set_transf_hidden, num_heads=n_set_heads,
+        self.set_cls = SetTransformer(dim_input=n_input_dim, dim_hidden=set_transf_hidden, num_heads=n_set_heads,
                                       dim_output=n_classes, ln=True)
 
     def forward(self, attrs):
@@ -619,7 +619,7 @@ if __name__ == "__main__":
     
     #n_classes is 2, as there are two possible outcomes for a sample, either defect or not 
 
-    net = NeSyConceptLearner(n_attr = n_segments)
+    net = NeSyConceptLearner(n_input_dim = n_segments)
     #net = NeSyConceptLearner(n_classes=2, n_attr=6, n_set_heads=4, set_transf_hidden=128,
     #                         device=device).to(device)
     output = net(x)

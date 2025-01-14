@@ -3,34 +3,34 @@
 # CUDA DEVICE ID
 DEVICE=$1
 NUM=$2
-#MODE=$3
+# MODE=$3
 MODEL="ts-concept-learner-$NUM"
 
 #-------------------------------------------------------------------------------#
 # CLEVR-Hans3
 
 # Set epochs back to 50
-CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s \
+CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s --mode gridsearch \
 --concept tsfresh --load-ts --ts-setting slow \
---epochs 50 --name $MODEL --lr 0.0001 --batch-size 128 --seed 0 --num-workers 4 --mode train \
+--epochs 50 --name $MODEL --lr 0.0001 --batch-size 128 --seed 0 --num-workers 4
 
 
 ### SAX
 # --concept sax --n-segments 7 --alphabet-size 3 \
 
 
-### tsfresh
+# ### tsfresh
 # --load-ts
 # fast | mid| slow
 
-#--no-cuda  # for cpu usage
+# --no-cuda  # for cpu usage
 
-### Modes
+# ## Modes
 # gridsearch | train | test | plot
 
 
-#CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s --concept tsfresh --n-segments 8 --alphabet-size 4 \
-#--epochs 50 --name $MODEL --lr 0.0001 --batch-size 128 --seed 0 --num-workers 4 --mode train \
+# CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s --concept tsfresh --n-segments 8 --alphabet-size 4 \
+# --epochs 50 --name $MODEL --lr 0.0001 --batch-size 128 --seed 0 --num-workers 4 --mode train \
 
 
 

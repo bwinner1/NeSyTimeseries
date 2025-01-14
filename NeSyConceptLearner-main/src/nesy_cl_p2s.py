@@ -272,20 +272,33 @@ def train(args):
     test_dataset = TensorDataset(concepts_test, labels_test, ts_test)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
+    # if not gridsearching, use default values
+    # else assume that all needed args are provided
+    if args.mode != "gridsearch":
+            args.n_heads = 4
+            args.set_transf_hidden = 128
+
     # In general, the SetTransformer requires the following shape:
     # (batch_size * num_elements * feature_dim)
     # n_attr being equal the feature_dim
+
+    # SAX input shape: (using one_hot_encoding, later in apply_net)
+    # (batch_size, segments, alphabet_size)
     if args.concept == "sax":
-        net = model.NeSyConceptLearner(n_attr=args.alphabet_size, device=args.device)
+        args.n_input_dim = args.alphabet_size
+
+    # tsfresh input shape:
+    # (batch_size, 1, feature_num)
     elif args.concept == "tsfresh":
-        # n_attr is set to the 
-        net = model.NeSyConceptLearner(n_attr=concepts_train.size(2), device=args.device)
+        args.n_input_dim = concepts_train.size(2)
     # elif ...
     else:
         pass
 
-
+    net = model.NeSyConceptLearner(n_input_dim=args.n_input_dim, device=args.device,
+                                   n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden)
     net = net.to(args.device)
+
     # only optimize the set transformer classifier for now, i.e. freeze the state predictor
     optimizer = torch.optim.Adam(
         [p for name, p in net.named_parameters() if p.requires_grad and 'set_cls' in name], lr=args.lr
@@ -334,21 +347,15 @@ def train(args):
         rtpt.step()
 
     # load best model for final evaluation
-    
-    if args.concept == "sax":
-        net = model.NeSyConceptLearner(n_attr=args.alphabet_size, device=args.device)
-    elif args.concept == "tsfresh":
-        # n_attr is set to the 
-        net = model.NeSyConceptLearner(n_attr=concepts_train.size(2), device=args.device)
-    # elif ...
-    else:
-        pass
+    net = model.NeSyConceptLearner(n_input_dim=args.n_input_dim, device=args.device,
+                                   n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden)
 
+    net = net.to(args.device)
 
     checkpoint = torch.load(glob.glob(os.path.join(writer.log_dir, "model_*_bestvalloss*.pth"))[0])
     net.load_state_dict(checkpoint['weights'])
     net.eval()
-    print("\nModel loaded from checkpoint for final evaluation, printing test and val statistics::\n")
+    print("\nModel loaded from checkpoint for final evaluation, printing test and val statistics:\n")
 
     acc_test = get_confusion_from_ckpt(net, test_loader, criterion, args=args, datasplit='test_best',
                             writer=writer)
@@ -406,7 +413,7 @@ def test(args):
     criterion = nn.CrossEntropyLoss()
 
     net = model.NeSyConceptLearner(n_classes=args.n_classes, n_slots=args.n_slots, n_iters=args.n_iters_slot_att,
-                             n_attr=args.n_attr, n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden,
+                             n_input_dim=args.n_attr, n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden,
                              category_ids=args.category_ids, device=args.device)
     net = net.to(args.device)
 
@@ -451,7 +458,7 @@ def plot(args):
 
     # load best model for final evaluation
     net = model.NeSyConceptLearner(n_classes=args.n_classes, n_slots=args.n_slots, n_iters=args.n_iters_slot_att,
-                             n_attr=args.n_attr, n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden,
+                             n_input_dim=args.n_attr, n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden,
                              category_ids=args.category_ids, device=args.device)
     net = net.to(args.device)
 
@@ -481,11 +488,6 @@ def apply_net(input, net, args):
     if(args.concept == "sax"):
         input = nn.functional.one_hot(input, num_classes=args.alphabet_size)
 
-
-    print(f"old apply_net input and net device: {input.device}, {net.device}")
-    input = input.to(args.device)
-    net = net.to(args.device)
-    print(f"new apply_net input and net device: {input.device}, {net.device}")
     # Applying the SetTransformer
     output_cls, output_attr = net(input)
     
@@ -493,6 +495,61 @@ def apply_net(input, net, args):
     _, preds = torch.max(output_cls, 1)
     
     return output_cls, output_attr, preds
+
+def gridsearch(args):
+    # Gridsearch
+
+    test_accuracies = []
+    val_accuracies = []
+
+    ### SAX
+    if args.concept == "sax":
+        segments = (128, 256, 512, 1024)
+        alphabet_sizes = (4, 10, 16, 32)
+        set_heads = (4,)
+
+        iteration_list = product(segments, alphabet_sizes, set_heads)
+
+        for (s, a, s_h) in iteration_list:
+            args.n_segments = s
+            args.alphabet_size = a
+            args.set_heads = s_h
+
+            acc_test, acc_val = train(args)
+            test_accuracies.append(acc_test)
+            val_accuracies.append(acc_val)
+
+        print("n_segments,alphabet_size,set_heads,test_acc,val_acc")
+        for (i, (s, a, s_h)) in enumerate(iteration_list):
+            print(f"{s},{a},{s_h},{100 * test_accuracies[i]:.3f},{100 * val_accuracies[i]:.3f}")
+            #print(f"n_segments: {s}, alphabet_size: {a}, set_heads: {s_h}, test_acc: {100 * test_accuracies[i]:.3f}; val_acc: {100 * val_accuracies[i]:.3f}")
+            #print('n_segments: {}, alphabet_size: {}, test_accuracy: {:.3f}, val_accuracy: {:.3f}'
+            #     .format(s, a, test_accuracies[i]*100, val_accuracies[i]*100))
+
+    ### tsfresh
+    elif args.concept == "tsfresh":
+        # batch_sizes = (8, 32, 128, 512)
+        batch_sizes = (128, )
+        set_heads = (4, 8, 16, 32)
+        hidden_dim = (32, 64, 128, 256)
+
+        iteration_list = list(product(batch_sizes, set_heads, hidden_dim))
+
+        # for b in batch_sizes:
+        for (i, (b, s, h)) in enumerate(iteration_list):
+
+            args.batch_size = b
+            args.n_heads = s
+            args.set_transf_hidden = h
+            print(f"Training Nr.{i+1}: batch_size={b}, set_heads={s}, hidden_dim={h}")
+            acc_test, acc_val = train(args)
+            test_accuracies.append(acc_test)
+            val_accuracies.append(acc_val)
+
+        print("batch_size,set_heads,hidden_dim,test_acc,val_acc")
+        for (i, (b,s,h)) in enumerate(iteration_list):
+            print(f"{b},{s},{h},{100 * test_accuracies[i]:.3f},{100 * val_accuracies[i]:.3f}")
+
 
 def main():
     args = get_args()
@@ -505,37 +562,11 @@ def main():
     elif args.mode == 'plot':
         plot(args)
     elif args.mode == 'gridsearch':
+        gridsearch(args)
 
-        # Gridsearch 3
-        segments = (128, 256, 512, 1024)
-        alphabet_sizes = (4, 10, 16, 32)
-        set_heads = (4,)
+     
 
-        """ 
-        # Gridsearch 2
-        segments = (32, 64, 128, 256)
-        alphabet_sizes = (4, 6, 8, 10)
-        set_heads = (1, 2, 4, 8, 16)
-         """
-
-        test_accuracies = []
-        val_accuracies = []
-
-        for (s, a, s_h) in product(segments, alphabet_sizes, set_heads):
-            args.n_segments = s
-            args.alphabet_size = a
-            args.set_heads = s_h
-
-            acc_test, acc_val = train(args)
-            test_accuracies.append(acc_test)
-            val_accuracies.append(acc_val)
-
-        print("n_segments,alphabet_size,set_heads,test_acc,val_acc")
-        for (i, (s, a, s_h)) in enumerate(product(segments, alphabet_sizes, set_heads)):
-            print(f"{s},{a},{s_h},{100 * test_accuracies[i]:.3f},{100 * val_accuracies[i]:.3f}")
-            #print(f"n_segments: {s}, alphabet_size: {a}, set_heads: {s_h}, test_acc: {100 * test_accuracies[i]:.3f}; val_acc: {100 * val_accuracies[i]:.3f}")
-            #print('n_segments: {}, alphabet_size: {}, test_accuracy: {:.3f}, val_accuracy: {:.3f}'
-             #     .format(s, a, test_accuracies[i]*100, val_accuracies[i]*100))
+        
 
 
 if __name__ == "__main__":
