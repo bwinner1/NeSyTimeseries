@@ -323,7 +323,7 @@ def train(args):
         #plot = False
         #if(epoch == args.epochs - 1):
         #    plot = True
-        plot = False
+        plot = True
 
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
                         train=False, plot=plot, epoch=epoch)                       
@@ -541,7 +541,7 @@ def gridsearch(args):
             args.batch_size = b
             args.n_heads = s
             args.set_transf_hidden = h
-            print(f"Training Nr.{i+1}: batch_size={b}, set_heads={s}, hidden_dim={h}")
+            print(f"\nTraining {i+1}\{len(iteration_list)+1}: batch_size={b}, set_heads={s}, hidden_dim={h}")
             acc_test, acc_val = train(args)
             test_accuracies.append(acc_test)
             val_accuracies.append(acc_val)
