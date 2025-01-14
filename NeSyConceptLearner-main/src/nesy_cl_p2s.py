@@ -221,9 +221,9 @@ def train(args):
     elif args.concept == "tsfresh":
         if args.load_ts:
             # Load previous .pt files
-            concepts_train = torch.load(f'tsfresh_{args.ts_setting}_train.pt')
-            concepts_val = torch.load(f'tsfresh_{args.ts_setting}_val.pt')
-            concepts_test = torch.load(f'tsfresh_{args.ts_setting}_test.pt')
+            concepts_train = torch.load(f'pretrain/tsfresh_{args.ts_setting}_train.pt')
+            concepts_val = torch.load(f'pretrain/tsfresh_{args.ts_setting}_val.pt')
+            concepts_test = torch.load(f'pretrain/tsfresh_{args.ts_setting}_test.pt')
             pass
         else:
             # Use tsfresh and save extracted features into a .pt file
@@ -231,9 +231,9 @@ def train(args):
             concepts_val, _ = model.tsfreshTransformer.transform(ts_val, labels_val, filtered_columns, setting=args.ts_setting)
             concepts_test, _ = model.tsfreshTransformer.transform(ts_test, labels_test, filtered_columns, setting=args.ts_setting)
 
-            torch.save(concepts_train, f'tsfresh_{args.ts_setting}_train.pt')
-            torch.save(concepts_val, f'tsfresh_{args.ts_setting}_val.pt')
-            torch.save(concepts_test, f'tsfresh_{args.ts_setting}_test.pt')
+            torch.save(concepts_train, f'pretrain/tsfresh_{args.ts_setting}_train.pt')
+            torch.save(concepts_val, f'pretrain/tsfresh_{args.ts_setting}_val.pt')
+            torch.save(concepts_test, f'pretrain/tsfresh_{args.ts_setting}_test.pt')
 
     #elif args.concept == "vq-vae":
     else:
