@@ -1,0 +1,3 @@
+batch_size,set_heads,hidden_dim,val_acc,test_acc
+128,8,64,100.000,78.497
+128,8,128,100.000,79.016

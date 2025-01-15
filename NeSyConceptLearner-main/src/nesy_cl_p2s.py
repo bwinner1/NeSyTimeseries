@@ -319,11 +319,12 @@ def train(args):
         scheduler.step()
 
         # TODO: Set value back to plot=True
-
+        # Turn Explanations on and off
+        
         #plot = False
         #if(epoch == args.epochs - 1):
         #    plot = True
-        plot = True
+        plot = False
 
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
                         train=False, plot=plot, epoch=epoch)                       
@@ -528,27 +529,33 @@ def gridsearch(args):
 
     ### tsfresh
     elif args.concept == "tsfresh":
-        # batch_sizes = (8, 32, 128, 512)
-        batch_sizes = (128, )
-        set_heads = (4, 8, 16, 32)
-        hidden_dim = (32, 64, 128, 256)
+        batch_sizes = (128,)
+        set_heads = (8, )
+        hidden_dim = (64, 128)
+        # batch_sizes = (64, 128, 256)
+        # set_heads = (8, 16, 32, 64)
+        # hidden_dim = (64, 128, 256, 512, 1024)
 
         iteration_list = list(product(batch_sizes, set_heads, hidden_dim))
 
-        # for b in batch_sizes:
-        for (i, (b, s, h)) in enumerate(iteration_list):
+        filename = f"gridsearch/gridsearch_{utils.get_current_time()}.csv"
+        with open(filename, "a") as file:
+            file.write("batch_size,set_heads,hidden_dim,val_acc,test_acc\n")
+            for (i, (b, s, h)) in enumerate(iteration_list):
 
-            args.batch_size = b
-            args.n_heads = s
-            args.set_transf_hidden = h
-            print(f"\nTraining {i+1}\{len(iteration_list)+1}: batch_size={b}, set_heads={s}, hidden_dim={h}")
-            acc_test, acc_val = train(args)
-            test_accuracies.append(acc_test)
-            val_accuracies.append(acc_val)
+                args.batch_size = b
+                args.n_heads = s
+                args.set_transf_hidden = h
+                print(f"\nTraining {i+1}\{len(iteration_list)}: batch_size={b}, set_heads={s}, hidden_dim={h}")
+                acc_test, acc_val = train(args)
+                # test_accuracies.append(acc_test)
+                # val_accuracies.append(acc_val)
+                file.write(f"{b},{s},{h},{100 * acc_val:.3f},{100 * acc_test:.3f}\n")
 
-        print("batch_size,set_heads,hidden_dim,test_acc,val_acc")
-        for (i, (b,s,h)) in enumerate(iteration_list):
-            print(f"{b},{s},{h},{100 * test_accuracies[i]:.3f},{100 * val_accuracies[i]:.3f}")
+            
+            # for (i, (b,s,h)) in enumerate(iteration_list):
+            #     print(f"{b},{s},{h},{100 * test_accuracies[i]:.3f},{100 * val_accuracies[i]:.3f}")
+
 
 
 def main():
@@ -563,11 +570,6 @@ def main():
         plot(args)
     elif args.mode == 'gridsearch':
         gridsearch(args)
-
-     
-
-        
-
 
 if __name__ == "__main__":
     main()

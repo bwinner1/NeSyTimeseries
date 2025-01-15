@@ -143,13 +143,17 @@ def hungarian_matching(attrs, preds_attrs, verbose=0):
     idx_map_ids = np.array(idx_map_ids)
     return matched_preds_attrs, idx_map_ids
 
+def get_current_time():
+    current_time = datetime.datetime.now()
+    return f"{current_time.year}_{current_time.month:02}_{current_time.day:02}__" \
+                  f"{(current_time.hour + 1) % 24:02}_{current_time.minute:02}_{current_time.second:02}"
+
 
 def create_writer(args):
 
     current_time = datetime.datetime.now()
-    time_string = f"{current_time.year}_{current_time.month:02}_{current_time.day:02}__" \
-                  f"{(current_time.hour + 1) % 24:02}_{current_time.minute:02}_{current_time.second:02}"
-
+    time_string = get_current_time()
+    
     writer = SummaryWriter(f"runs/{args.conf_version}/{args.name}_seed{args.seed}_{time_string}", purge_step=0)
     #writer = SummaryWriter(f"runs/{args.conf_version}/{args.name}_seed{args.seed}", purge_step=0)
 
@@ -200,6 +204,9 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     sorted_letters = [letters[i] for i in sorted_indices]
     sorted_hlines = [hlines[i] for i in sorted_indices]
     ax.legend(handles=sorted_hlines, labels=sorted_letters)
+
+def create_expl_tsfresh(time_series, concepts, output, saliencies, true_label, pred_label):
+    pass
 
 def create_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_label):
     """
@@ -377,16 +384,24 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 samples, concepts, output_attr, table_saliencies, labels, preds
         )):
             
-            fig1, fig2 = create_expl_SAX(sample.cpu().numpy(),
-                                  concept.cpu().numpy(),
-                                  output.cpu().numpy(),
-                                  table_expl.cpu().numpy(),
-                                  true_label, pred_label)
-            
-            writer.add_figure(f"{tagname}_{sample_id}_A", fig1, epoch)
-            writer.add_figure(f"{tagname}_{sample_id}_B", fig2, epoch)
-            if sample_id >= 10:
-                break
+            if args.concept == "sax":
+                fig1, fig2 = create_expl_SAX(sample.cpu().numpy(),
+                                    concept.cpu().numpy(),
+                                    output.cpu().numpy(),
+                                    table_expl.cpu().numpy(),
+                                    true_label, pred_label)
+                
+                writer.add_figure(f"{tagname}_{sample_id}_SAX_A", fig1, epoch)
+                writer.add_figure(f"{tagname}_{sample_id}_SAX_B", fig2, epoch)
+                if sample_id >= 10:
+                    break
+            elif args.concept == "tsfresh":
+                # TODO: Continue from here, Implement the method
+                fig1, fig2 = create_expl_tsfresh(sample.cpu().numpy(),
+                    concept.cpu().numpy(),
+                    output.cpu().numpy(),
+                    table_expl.cpu().numpy(),
+                    true_label, pred_label)
         break
 
 # Is used only in plot(), which currently isn't being used. 
@@ -467,3 +482,4 @@ def save_expls(net, data_loader, tagname, save_path):
 
                 if num_stored_imgs == len(relevant_ids):
                     exit()
+
