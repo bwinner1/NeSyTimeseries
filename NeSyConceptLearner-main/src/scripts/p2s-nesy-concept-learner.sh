@@ -10,14 +10,13 @@ MODEL="ts-concept-learner-$NUM"
 # CLEVR-Hans3
 
 # Set epochs back to 50
-CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s --mode gridsearch \
+CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl_p2s.py --dataset p2s --mode train \
 --concept tsfresh --load-ts --ts-setting slow \
 --epochs 50 --name $MODEL --lr 0.0001 --batch-size 128 --seed 0 --num-workers 4
 
 
-### SAX
+# SAX
 # --concept sax --n-segments 7 --alphabet-size 3 \
-
 
 # ### tsfresh
 # --load-ts

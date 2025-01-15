@@ -224,16 +224,22 @@ def train(args):
             concepts_train = torch.load(f'pretrain/tsfresh_{args.ts_setting}_train.pt')
             concepts_val = torch.load(f'pretrain/tsfresh_{args.ts_setting}_val.pt')
             concepts_test = torch.load(f'pretrain/tsfresh_{args.ts_setting}_test.pt')
+            column_labels = torch.load(f'pretrain/tsfresh_{args.ts_setting}_column_labels.pt')
             pass
         else:
             # Use tsfresh and save extracted features into a .pt file
             concepts_train, filtered_columns = model.tsfreshTransformer.transform(ts_train, labels_train, setting=args.ts_setting)
             concepts_val, _ = model.tsfreshTransformer.transform(ts_val, labels_val, filtered_columns, setting=args.ts_setting)
             concepts_test, _ = model.tsfreshTransformer.transform(ts_test, labels_test, filtered_columns, setting=args.ts_setting)
+            column_labels = filtered_columns.tolist()
 
             torch.save(concepts_train, f'pretrain/tsfresh_{args.ts_setting}_train.pt')
             torch.save(concepts_val, f'pretrain/tsfresh_{args.ts_setting}_val.pt')
             torch.save(concepts_test, f'pretrain/tsfresh_{args.ts_setting}_test.pt')
+            torch.save(column_labels, f'pretrain/tsfresh_{args.ts_setting}_column_labels.pt')
+        # Important for using in utils later:
+        args.column_labels = column_labels
+
 
     #elif args.concept == "vq-vae":
     else:
@@ -276,7 +282,7 @@ def train(args):
     # else assume that all needed args are provided
     if args.mode != "gridsearch":
             args.n_heads = 4
-            args.set_transf_hidden = 128
+            args.set_transf_hidden = 256
 
     # In general, the SetTransformer requires the following shape:
     # (batch_size * num_elements * feature_dim)
@@ -324,7 +330,7 @@ def train(args):
         #plot = False
         #if(epoch == args.epochs - 1):
         #    plot = True
-        plot = False
+        plot = True
 
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
                         train=False, plot=plot, epoch=epoch)                       
@@ -529,18 +535,43 @@ def gridsearch(args):
 
     ### tsfresh
     elif args.concept == "tsfresh":
+        # batch_sizes = (128,)
+        # set_heads = (8, )
+        # hidden_dim = (64, 128)
+
+        """
+        # v1
+        batch_sizes = (64, 128, 256)
+        set_heads = (8, 16, 32, 64)
+        hidden_dim = (64, 128, 256, 512, 1024)
+        """
+
+        """
+        # v2
         batch_sizes = (128,)
-        set_heads = (8, )
-        hidden_dim = (64, 128)
-        # batch_sizes = (64, 128, 256)
-        # set_heads = (8, 16, 32, 64)
-        # hidden_dim = (64, 128, 256, 512, 1024)
+        set_heads = (1, 2, 4, 8, 16)
+        hidden_dim = (16, 32, 64)
+        """
+        
+        """ 
+        # v3
+        batch_sizes = (128,)
+        set_heads = (1, 2, 4, 8, 16)
+        hidden_dim = (64, 128, 256, 512, 1024)
+         """
+        
+        # v4
+        batch_sizes = (128,)
+        set_heads = (4, 8, 16)
+        hidden_dim = (128, 256, 128, 256, 128, 256, )
+        
 
         iteration_list = list(product(batch_sizes, set_heads, hidden_dim))
 
         filename = f"gridsearch/gridsearch_{utils.get_current_time()}.csv"
         with open(filename, "a") as file:
             file.write("batch_size,set_heads,hidden_dim,val_acc,test_acc\n")
+            file.flush()
             for (i, (b, s, h)) in enumerate(iteration_list):
 
                 args.batch_size = b
@@ -551,6 +582,7 @@ def gridsearch(args):
                 # test_accuracies.append(acc_test)
                 # val_accuracies.append(acc_val)
                 file.write(f"{b},{s},{h},{100 * acc_val:.3f},{100 * acc_test:.3f}\n")
+                file.flush()
 
             
             # for (i, (b,s,h)) in enumerate(iteration_list):

@@ -153,7 +153,7 @@ def create_writer(args):
 
     current_time = datetime.datetime.now()
     time_string = get_current_time()
-    
+
     writer = SummaryWriter(f"runs/{args.conf_version}/{args.name}_seed{args.seed}_{time_string}", purge_step=0)
     #writer = SummaryWriter(f"runs/{args.conf_version}/{args.name}_seed{args.seed}", purge_step=0)
 
@@ -205,8 +205,35 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     sorted_hlines = [hlines[i] for i in sorted_indices]
     ax.legend(handles=sorted_hlines, labels=sorted_letters)
 
-def create_expl_tsfresh(time_series, concepts, output, saliencies, true_label, pred_label):
-    pass
+def create_expl_tsfresh(time_series, concepts, output, saliencies, true_label, pred_label, column_names):
+    """Plots a figure of a time series sample.
+      Moreover returns a table with most important featues"""
+    
+    saliencies = saliencies[0]
+    
+    # Plot samples
+    fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
+    ax1.plot(time_series)
+    print("saliencies:")
+    # print(saliencies.shape) # (1, 462)
+
+    fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
+    # TODO: Continue from here
+    # 1) Vizualize a big heatmap with the saliency values
+    # 2) Show the names and the importance of the top 10 values
+    heatmap = ax2.imshow(saliencies, cmap='viridis', aspect='auto', vmin=-1.0, vmax=1.0) # TODO: or try out plasma
+    # Add colorbar to show the saliency scale
+    cbar = plt.colorbar(heatmap, ax=ax2)
+    cbar.set_label("Importance (Saliency)", fontsize=20)
+
+    # Set tick labels
+    ax2.set_xticks(np.arange(saliencies.shape[1]))
+    ax2.set_yticks(np.arange(saliencies.shape[0]))
+    
+    # plot a table with top 5 or top 10 features
+
+    fig1.suptitle(f"True Class: {true_label}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
+    return fig1, fig2
 
 def create_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_label):
     """
@@ -396,12 +423,11 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 if sample_id >= 10:
                     break
             elif args.concept == "tsfresh":
-                # TODO: Continue from here, Implement the method
                 fig1, fig2 = create_expl_tsfresh(sample.cpu().numpy(),
                     concept.cpu().numpy(),
                     output.cpu().numpy(),
                     table_expl.cpu().numpy(),
-                    true_label, pred_label)
+                    true_label, pred_label, args.column_labels)
         break
 
 # Is used only in plot(), which currently isn't being used. 
