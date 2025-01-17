@@ -498,7 +498,7 @@ class tsfreshTransformer:
         self.sax = SAX(self.n_segments, self.alphabet_size)
  """
     @staticmethod
-    def transform(dataset, y, filtered_columns=None, setting="min"):
+    def transform(dataset, y, filtered_columns=None, setting="min", filter=True):
         # dataset, y = load_unit_test()
         dataset = np.array(dataset)
         # Probably no 
@@ -528,11 +528,14 @@ class tsfreshTransformer:
         # Extract and filter
         # X = extract_relevant_features(df, y, column_id='ts_id',
         #                                default_fc_parameters=MinimalFCParameters())
-         """
+        """
         
         #If no columns are given (train dataset), then use select_features from tsfresh package
         if filtered_columns is None:
-            X_filtered = select_features(X, y)
+            if filter:
+                X_filtered = select_features(X, y)            
+            else:
+                X_filtered = X
             filtered_columns = X_filtered.columns
         
         # If columns are given (train, val), then select the same for the train and test dataset

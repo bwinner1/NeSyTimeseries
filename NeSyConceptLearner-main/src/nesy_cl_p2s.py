@@ -219,24 +219,35 @@ def train(args):
 
     ### TODO: Add other cases
     elif args.concept == "tsfresh":
+        ### TODO: Change back to True
+        args.filter = False
+        
+        path = "pretrain"
+        if args.filter:
+            path += "/features_filtered"
+        else:
+            path += "/features_unfiltered"
         if args.load_ts:
             # Load previous .pt files
-            concepts_train = torch.load(f'pretrain/tsfresh_{args.ts_setting}_train.pt')
-            concepts_val = torch.load(f'pretrain/tsfresh_{args.ts_setting}_val.pt')
-            concepts_test = torch.load(f'pretrain/tsfresh_{args.ts_setting}_test.pt')
-            column_labels = torch.load(f'pretrain/tsfresh_{args.ts_setting}_column_labels.pt')
+            concepts_train = torch.load(f'{path}/tsfresh_{args.ts_setting}_train.pt')
+            concepts_val = torch.load(f'{path}/tsfresh_{args.ts_setting}_val.pt')
+            concepts_test = torch.load(f'{path}/tsfresh_{args.ts_setting}_test.pt')
+            column_labels = torch.load(f'{path}/tsfresh_{args.ts_setting}_column_labels.pt')
             pass
         else:
             # Use tsfresh and save extracted features into a .pt file
-            concepts_train, filtered_columns = model.tsfreshTransformer.transform(ts_train, labels_train, setting=args.ts_setting)
-            concepts_val, _ = model.tsfreshTransformer.transform(ts_val, labels_val, filtered_columns, setting=args.ts_setting)
-            concepts_test, _ = model.tsfreshTransformer.transform(ts_test, labels_test, filtered_columns, setting=args.ts_setting)
+            concepts_train, filtered_columns = model.tsfreshTransformer.transform(ts_train, 
+                                labels_train, setting=args.ts_setting, filter=args.filter)
+            concepts_val, _ = model.tsfreshTransformer.transform(ts_val, labels_val,
+                                filtered_columns, setting=args.ts_setting, filter=args.filter)
+            concepts_test, _ = model.tsfreshTransformer.transform(ts_test, labels_test,
+                                filtered_columns, setting=args.ts_setting, filter=args.filter)
             column_labels = filtered_columns.tolist()
 
-            torch.save(concepts_train, f'pretrain/tsfresh_{args.ts_setting}_train.pt')
-            torch.save(concepts_val, f'pretrain/tsfresh_{args.ts_setting}_val.pt')
-            torch.save(concepts_test, f'pretrain/tsfresh_{args.ts_setting}_test.pt')
-            torch.save(column_labels, f'pretrain/tsfresh_{args.ts_setting}_column_labels.pt')
+            torch.save(concepts_train, f'{path}/tsfresh_{args.ts_setting}_train.pt')
+            torch.save(concepts_val, f'{path}/tsfresh_{args.ts_setting}_val.pt')
+            torch.save(concepts_test, f'{path}/tsfresh_{args.ts_setting}_test.pt')
+            torch.save(column_labels, f'{path}/tsfresh_{args.ts_setting}_column_labels.pt')
         # Important for using in utils later:
         args.column_labels = column_labels
 
@@ -330,7 +341,7 @@ def train(args):
         #plot = False
         #if(epoch == args.epochs - 1):
         #    plot = True
-        plot = True
+        plot = False
 
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
                         train=False, plot=plot, epoch=epoch)                       
