@@ -65,6 +65,16 @@ def get_args():
     parser.add_argument('--concept', choices=["sax", "tsfresh", "vq-vae"],
                         help='concept that should be applied to times series' )
     
+    parser.add_argument(
+        "--explain", action="store_true",
+          help="Plot model explanations"
+    )
+
+    parser.add_argument('--n-heads', type=int,
+                        help='number of set heads for set transformer')
+    parser.add_argument('--set-transf-hidden', type=int,
+                        help='number of hidden dimensions for set transformer')
+
     # SAX params
     parser.add_argument('--n-segments', default=8, type=int,
                         help='number of sax segments')

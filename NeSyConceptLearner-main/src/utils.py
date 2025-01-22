@@ -208,7 +208,7 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
 def create_expl_tsfresh(time_series, concepts, output, saliencies, true_label, pred_label, column_names):
     """Plots a figure of a time series sample.
       Moreover returns a table with most important featues"""
-    
+ 
     saliencies = saliencies[0]
     
     # Plot samples

@@ -250,6 +250,7 @@ def train(args):
             torch.save(column_labels, f'{path}/tsfresh_{args.ts_setting}_column_labels.pt')
         # Important for using in utils later:
         args.column_labels = column_labels
+        print(f"Number of column_labels: {len(column_labels)}")
 
 
     #elif args.concept == "vq-vae":
@@ -291,9 +292,9 @@ def train(args):
 
     # if not gridsearching, use default values
     # else assume that all needed args are provided
-    if args.mode != "gridsearch":
-            args.n_heads = 4
-            args.set_transf_hidden = 256
+    # if args.mode != "gridsearch":
+    #         args.n_heads = 128
+    #         args.set_transf_hidden = 512
 
     # In general, the SetTransformer requires the following shape:
     # (batch_size * num_elements * feature_dim)
@@ -341,7 +342,7 @@ def train(args):
         #plot = False
         #if(epoch == args.epochs - 1):
         #    plot = True
-        plot = False
+        plot = args.explain
 
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
                         train=False, plot=plot, epoch=epoch)                       
@@ -569,42 +570,72 @@ def gridsearch(args):
         batch_sizes = (128,)
         set_heads = (1, 2, 4, 8, 16)
         hidden_dim = (64, 128, 256, 512, 1024)
-         """
+        """
         
+        """         
         # v4
         batch_sizes = (128,)
         set_heads = (4, 8, 16)
-        hidden_dim = (128, 256, 128, 256, 128, 256, )
-        
+        hidden_dim = (128, 256, 128, 256, 128, 256, ) """
 
-        iteration_list = list(product(batch_sizes, set_heads, hidden_dim))
+        """ 
+        # v5
+        settings = ("slow", "mid")
+        set_heads = (8, 16, 32, 64)
+        hidden_dim = (64, 128, 256)
+        """
+
+        """         
+        # v6
+        settings = ("slow", "mid")
+        set_heads = (16, 32, 64, 128)
+        hidden_dim = (256, 512, 1024)
+        """
+
+        # v7
+        settings = ("slow", "mid")
+        set_heads = (16, 16)
+        hidden_dim = (128, 128, 128, 128, 128)
+        # TODO: If this doesn't finish running, run the rest of the iterations
+
+
+        args.batch_size = 128
+
+        iteration_list = list(product(settings, set_heads, hidden_dim))
 
         filename = f"gridsearch/gridsearch_{utils.get_current_time()}.csv"
         with open(filename, "a") as file:
-            file.write("batch_size,set_heads,hidden_dim,val_acc,test_acc\n")
+            file.write("setting,set_heads,hidden_dim,val_acc,test_acc\n")
             file.flush()
-            for (i, (b, s, h)) in enumerate(iteration_list):
+            for (i, (ts_set, s, h)) in enumerate(iteration_list):
 
-                args.batch_size = b
+                args.ts_setting = ts_set
                 args.n_heads = s
                 args.set_transf_hidden = h
-                print(f"\nTraining {i+1}\{len(iteration_list)}: batch_size={b}, set_heads={s}, hidden_dim={h}")
+                print(f"\nTraining {i+1}\{len(iteration_list)}: setting={ts_set}, set_heads={s}, hidden_dim={h}")
+                set_seed()
                 acc_test, acc_val = train(args)
                 # test_accuracies.append(acc_test)
                 # val_accuracies.append(acc_val)
-                file.write(f"{b},{s},{h},{100 * acc_val:.3f},{100 * acc_test:.3f}\n")
+                file.write(f"{ts_set},{s},{h},{100 * acc_val:.3f},{100 * acc_test:.3f}\n")
                 file.flush()
-
             
             # for (i, (b,s,h)) in enumerate(iteration_list):
             #     print(f"{b},{s},{h},{100 * test_accuracies[i]:.3f},{100 * val_accuracies[i]:.3f}")
 
+def set_seed(seed=42):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
 
 
 def main():
     args = get_args()
     if args.mode == 'train':
         torch.cuda.empty_cache()
+        set_seed()
+
         # args.set_heads = 4
         train(args)
     elif args.mode == 'test':
