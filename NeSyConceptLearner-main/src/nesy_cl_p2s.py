@@ -293,7 +293,7 @@ def train(args):
     # if not gridsearching, use default values
     # else assume that all needed args are provided
     # if args.mode != "gridsearch":
-    #         args.n_heads = 128
+    #         args.d = 128
     #         args.set_transf_hidden = 512
 
     # In general, the SetTransformer requires the following shape:

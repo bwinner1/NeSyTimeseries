@@ -214,21 +214,68 @@ def create_expl_tsfresh(time_series, concepts, output, saliencies, true_label, p
     # Plot samples
     fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
     ax1.plot(time_series)
-    print("saliencies:")
+    # print("saliencies:")
+    # print(saliencies)
     # print(saliencies.shape) # (1, 462)
 
-    fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
+
+    importance = np.array(saliencies)
+    column_names = np.array(column_names)
+
+    # Get the indices of the 10 largest values
+    best_indices = np.argsort(importance)[-10:][::-1]  # Sort indices, take the last 10, and reverse for descending order
+
+    # Retrieve the corresponding values and column names
+    best_values = importance[best_indices]
+    best_columns = column_names[best_indices]
+
+    # Normalize the importance values for coloring
+    norm = plt.Normalize(vmin=min(importance), vmax=max(importance))
+    cmap = plt.cm.viridis
+
+    fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(10, 6))
+
+    table = ax2.table(cellText=np.column_stack((best_columns, best_values)), colLabels=["Feature", "Importance"], loc="center", cellLoc='center')
+
+    # Loop through each cell and apply the color map based on the importance value
+    for (i, j), cell in table.get_celld().items():
+        if i == 0:  # Skip header row
+            continue
+        # Color the cells based on importance
+        cell.set_facecolor(cmap(norm(best_values[i-1])))
+
+    # Turn off axis and display the table
+    ax2.axis('off')
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])  # Empty array for the colorbar
+    plt.colorbar(sm, ax=ax2, orientation="horizontal", fraction=0.02, pad=0.04)
+
+    #heatmap = ax2.bar(best_columns, best_values)
+                      #, cmap='viridis', interpolation='none')  
+
+    # print("Best indices:", best_indices)
+    # print("Best values:", best_values)
+    # print("Best columns:", best_columns)
+
+    #for i, (value, col_name) in enumerate(zip(best_values, best_columns)):
+    #        plt.text(i, f"{col_name}\n{value}", 
+    #        ha="center", va="center", color="white", fontsize=8, weight="bold"
+    #    )
+
+
     # TODO: Continue from here
     # 1) Vizualize a big heatmap with the saliency values
     # 2) Show the names and the importance of the top 10 values
-    heatmap = ax2.imshow(saliencies, cmap='viridis', aspect='auto', vmin=-1.0, vmax=1.0) # TODO: or try out plasma
+    
+    #heatmap = ax2.imshow(saliencies, cmap='viridis', aspect='auto', vmin=-1.0, vmax=1.0) # TODO: or try out plasma
+    
     # Add colorbar to show the saliency scale
-    cbar = plt.colorbar(heatmap, ax=ax2)
-    cbar.set_label("Importance (Saliency)", fontsize=20)
+    #cbar = plt.colorbar(heatmap, ax=ax2)
+    #cbar.set_label("Importance (Saliency)", fontsize=20)
 
     # Set tick labels
-    ax2.set_xticks(np.arange(saliencies.shape[1]))
-    ax2.set_yticks(np.arange(saliencies.shape[0]))
+    #ax2.set_xticks(np.arange(saliencies.shape[1]))
+    #ax2.set_yticks(np.arange(saliencies.shape[0]))
     
     # plot a table with top 5 or top 10 features
 
@@ -245,12 +292,16 @@ def create_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_
     fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
     fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
 
+    # print("saliencies:")
+    # print(saliencies)
+    # print(saliencies.shape) # (1, 462)
+
     ### Plot actual samples
     plot_SAX(ax1, time_series, concepts, saliencies, alphabet)
 
     ### Plot heatmap visualization
     heatmap = ax2.imshow(saliencies, cmap='viridis', aspect='auto', vmin=-1.0, vmax=1.0) # TODO: or try out plasma
-    ax2.set_title("Table values have been multiplied by 100.")
+        # ax2.set_title("Table values have been multiplied by 100.")
 
     # Add colorbar to show the saliency scale
     cbar = plt.colorbar(heatmap, ax=ax2)
@@ -422,12 +473,18 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 writer.add_figure(f"{tagname}_{sample_id}_SAX_B", fig2, epoch)
                 if sample_id >= 10:
                     break
+                
             elif args.concept == "tsfresh":
                 fig1, fig2 = create_expl_tsfresh(sample.cpu().numpy(),
                     concept.cpu().numpy(),
                     output.cpu().numpy(),
                     table_expl.cpu().numpy(),
                     true_label, pred_label, args.column_labels)
+                writer.add_figure(f"{tagname}_{sample_id}_tsfresh_A", fig1, epoch)
+                writer.add_figure(f"{tagname}_{sample_id}_tsfresh_B", fig2, epoch)
+                
+                if sample_id >= 10:
+                    break
         break
 
 # Is used only in plot(), which currently isn't being used. 
