@@ -216,11 +216,7 @@ def train(args):
         concepts_val = sax.transform(ts_val)
         concepts_test = sax.transform(ts_test)
 
-    ### TODO: Add other cases
-    elif args.concept == "tsfresh":
-        # args.filter = False
-        # args.normalize = True
-        
+    elif args.concept == "tsfresh":        
         path = "pretrain"
 
         if args.filter_tsf:
@@ -255,7 +251,6 @@ def train(args):
         # Important for using in utils later:
         args.column_labels = column_labels
         print(f"Number of column_labels: {len(column_labels)}")
-
 
     #elif args.concept == "vq-vae":
     else:
@@ -555,56 +550,21 @@ def gridsearch(args):
         # set_heads = (8, )
         # hidden_dim = (64, 128)
 
-        """
-        # v1
-        batch_sizes = (64, 128, 256)
-        set_heads = (8, 16, 32, 64)
-        hidden_dim = (64, 128, 256, 512, 1024)
-        """
-
-        """
-        # v2
-        batch_sizes = (128,)
-        set_heads = (1, 2, 4, 8, 16)
-        hidden_dim = (16, 32, 64)
-        """
-        
-        """ 
-        # v3
-        batch_sizes = (128,)
-        set_heads = (1, 2, 4, 8, 16)
-        hidden_dim = (64, 128, 256, 512, 1024)
-        """
-        
-        """         
-        # v4
-        batch_sizes = (128,)
-        set_heads = (4, 8, 16)
-        hidden_dim = (128, 256, 128, 256, 128, 256, ) """
-
-        """ 
-        # v5
-        settings = ("slow", "mid")
-        set_heads = (8, 16, 32, 64)
-        hidden_dim = (64, 128, 256)
-        """
-
-        """         
-        # v6
-        settings = ("slow", "mid")
-        set_heads = (16, 32, 64, 128)
-        hidden_dim = (256, 512, 1024)
-        """
-
         # v7
-        settings = ("slow", "mid")
-        set_heads = (16, 16)
-        hidden_dim = (128, 128, 128, 128, 128)
+        settings = ("slow", )
+        set_heads = (4, )
+        hidden_dim = (256, )
         # TODO: If this doesn't finish running, run the rest of the iterations
-
 
         args.batch_size = 128
 
+        np.random.seed(args.seed)
+        # 5 seeds are generated for acc calculation.
+        seeds = np.random.randint(0, 10000, size=args.num_tries).tolist()
+        print(f"seeds: {seeds}")
+
+        accs_test = []
+        accs_val = []
         iteration_list = list(product(settings, set_heads, hidden_dim))
 
         filename = f"gridsearch/gridsearch_{utils.get_current_time()}.csv"
@@ -616,21 +576,30 @@ def gridsearch(args):
                 args.ts_setting = ts_set
                 args.n_heads = s
                 args.set_transf_hidden = h
-                print(f"\nTraining {i+1}\{len(iteration_list)}: setting={ts_set}, set_heads={s}, hidden_dim={h}")
-                set_seed(args)
-                acc_test, acc_val = train(args)
-                # test_accuracies.append(acc_test)
-                # val_accuracies.append(acc_val)
-                file.write(f"{ts_set},{s},{h},{100 * acc_val:.3f},{100 * acc_test:.3f}\n")
+
+                for j in range(len(seeds)):
+
+                    print(f"\nTraining {i+1}\{len(iteration_list)}, Seed {j+1}/{len(seeds)}: setting={ts_set}, set_heads={s}, hidden_dim={h}")
+                    set_seed(seeds[j])
+                    acc_test, acc_val = train(args)
+                    accs_test.append(acc_test)
+                    accs_val.append(acc_val)
+
+                # Calculate the average and the maximum deviation OF the different seeds
+                avg_acc_test = np.mean(accs_test)
+                dev_acc_test = np.max(np.abs(accs_test - avg_acc_test))
+                avg_acc_val = np.mean(accs_val)
+                dev_acc_val = np.max(np.abs(accs_val - avg_acc_val))
+
+                acc_test = f"{100 * avg_acc_test:.2f} ± {100 * dev_acc_test:.2f}"
+                acc_val = f"{100 * avg_acc_val:.2f} ± {100 * dev_acc_val:.2f}"
+
+                file.write(f"{ts_set},{s},{h},{acc_val},{acc_test}\n")
                 file.flush()
             
-            # for (i, (b,s,h)) in enumerate(iteration_list):
-            #     print(f"{b},{s},{h},{100 * test_accuracies[i]:.3f},{100 * val_accuracies[i]:.3f}")
 
-def set_seed(args):
-    if args.seed != -1:  
-        seed = args.seed
-    else:
+def set_seed(seed):
+    if seed == -1:  
         seed = 42
 
     torch.manual_seed(seed)
@@ -643,9 +612,7 @@ def main():
     args = get_args()
     if args.mode == 'train':
         torch.cuda.empty_cache()
-        set_seed(args)
-
-        # args.set_heads = 4
+        set_seed(args.seed)
         train(args)
     elif args.mode == 'test':
         test(args)
