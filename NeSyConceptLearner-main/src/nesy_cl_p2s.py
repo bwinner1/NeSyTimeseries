@@ -216,18 +216,22 @@ def train(args):
         concepts_val = sax.transform(ts_val)
         concepts_test = sax.transform(ts_test)
 
-
     ### TODO: Add other cases
     elif args.concept == "tsfresh":
-        ### TODO: Change back to True
-        args.filter = False
+        # args.filter = False
+        # args.normalize = True
         
         path = "pretrain"
-        if args.filter:
+
+        if args.filter_tsf:
             path += "/features_filtered"
         else:
             path += "/features_unfiltered"
-        if args.load_ts:
+
+        if args.normalize_tsf:
+            path += "_normalized"
+        
+        if args.load_tsf:
             # Load previous .pt files
             concepts_train = torch.load(f'{path}/tsfresh_{args.ts_setting}_train.pt')
             concepts_val = torch.load(f'{path}/tsfresh_{args.ts_setting}_val.pt')
@@ -236,12 +240,12 @@ def train(args):
             pass
         else:
             # Use tsfresh and save extracted features into a .pt file
-            concepts_train, filtered_columns = model.tsfreshTransformer.transform(ts_train, 
-                                labels_train, setting=args.ts_setting, filter=args.filter)
-            concepts_val, _ = model.tsfreshTransformer.transform(ts_val, labels_val,
-                                filtered_columns, setting=args.ts_setting, filter=args.filter)
-            concepts_test, _ = model.tsfreshTransformer.transform(ts_test, labels_test,
-                                filtered_columns, setting=args.ts_setting, filter=args.filter)
+            concepts_train, filtered_columns, scaler = model.tsfreshTransformer.transform(ts_train, 
+                                labels_train, setting=args.ts_setting, filter=args.filter_tsf)
+            concepts_val, _, _ = model.tsfreshTransformer.transform(ts_val, labels_val,
+                                filtered_columns, scaler, setting=args.ts_setting, filter=args.filter_tsf)
+            concepts_test, _, _ = model.tsfreshTransformer.transform(ts_test, labels_test,
+                                filtered_columns, scaler, setting=args.ts_setting, filter=args.filter_tsf)
             column_labels = filtered_columns.tolist()
 
             torch.save(concepts_train, f'{path}/tsfresh_{args.ts_setting}_train.pt')
@@ -613,7 +617,7 @@ def gridsearch(args):
                 args.n_heads = s
                 args.set_transf_hidden = h
                 print(f"\nTraining {i+1}\{len(iteration_list)}: setting={ts_set}, set_heads={s}, hidden_dim={h}")
-                set_seed()
+                set_seed(args)
                 acc_test, acc_val = train(args)
                 # test_accuracies.append(acc_test)
                 # val_accuracies.append(acc_val)
@@ -623,7 +627,12 @@ def gridsearch(args):
             # for (i, (b,s,h)) in enumerate(iteration_list):
             #     print(f"{b},{s},{h},{100 * test_accuracies[i]:.3f},{100 * val_accuracies[i]:.3f}")
 
-def set_seed(seed=42):
+def set_seed(args):
+    if args.seed != -1:  
+        seed = args.seed
+    else:
+        seed = 42
+
     torch.manual_seed(seed)
     np.random.seed(seed)
     if torch.cuda.is_available():
@@ -634,7 +643,7 @@ def main():
     args = get_args()
     if args.mode == 'train':
         torch.cuda.empty_cache()
-        set_seed()
+        set_seed(args)
 
         # args.set_heads = 4
         train(args)

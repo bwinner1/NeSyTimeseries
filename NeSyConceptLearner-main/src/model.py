@@ -498,7 +498,7 @@ class tsfreshTransformer:
         self.sax = SAX(self.n_segments, self.alphabet_size)
  """
     @staticmethod
-    def transform(dataset, y, filtered_columns=None, setting="min", filter=True):
+    def transform(dataset, y, columns=None, scaler=None, setting="min", filter=True):
         # dataset, y = load_unit_test()
         dataset = np.array(dataset)
         # Probably no 
@@ -530,23 +530,25 @@ class tsfreshTransformer:
         #                                default_fc_parameters=MinimalFCParameters())
         """
         
-        #If no columns are given (train dataset), then use select_features from tsfresh package
-        if filtered_columns is None:
+        # Train dataset
+        #If no columns are given, then use select_features from tsfresh package
+        if columns is None:
             if filter:
-                X_filtered = select_features(X, y)            
-            else:
-                X_filtered = X
-            filtered_columns = X_filtered.columns
-        
-        # If columns are given (train, val), then select the same for the train and test dataset
-        else:
-            X_filtered = X[filtered_columns]
-        # print(X.shape)
+                X = select_features(X, y)            
+            columns = X.columns
+            scaler = StandardScaler()
+            scaler.fit(X)
 
+        # Val and Test datasets
+        # If columns are given, then select the same for the train and test dataset
+        else:
+            X = X[columns]
+
+        X_normalized = scaler.transform(X)
+        
         # Convert the pd to a tensor, add an inner dimension
-        print("tsfeatures:")
-        print()
-        return torch.tensor(X_filtered.to_numpy(), dtype=torch.float32).unsqueeze(1), filtered_columns
+        return torch.tensor(X_normalized, dtype=torch.float32).unsqueeze(1), columns, scaler
+        # return torch.tensor(X_filtered.to_numpy(), dtype=torch.float32).unsqueeze(1), filtered_columns
 
 
 
