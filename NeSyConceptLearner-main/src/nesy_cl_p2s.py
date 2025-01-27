@@ -551,9 +551,9 @@ def gridsearch(args):
         # hidden_dim = (64, 128)
 
         # v7
-        settings = ("slow", )
-        set_heads = (4, )
-        hidden_dim = (256, )
+        settings = ("slow", "mid")
+        set_heads = (4, 8, 16,)
+        hidden_dim = (128, 256, 512)
         # TODO: If this doesn't finish running, run the rest of the iterations
 
         args.batch_size = 128
@@ -579,7 +579,7 @@ def gridsearch(args):
 
                 for j in range(len(seeds)):
 
-                    print(f"\nTraining {i+1}\{len(iteration_list)}, Seed {j+1}/{len(seeds)}: setting={ts_set}, set_heads={s}, hidden_dim={h}")
+                    print(f"\nTraining {i+1}/{len(iteration_list)}, Seed {j+1}/{len(seeds)}: setting={ts_set}, set_heads={s}, hidden_dim={h}")
                     set_seed(seeds[j])
                     acc_test, acc_val = train(args)
                     accs_test.append(acc_test)
