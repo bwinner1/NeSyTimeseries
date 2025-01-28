@@ -10,7 +10,12 @@ from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks import LearningRateMonitor
 import wandb
 
-#from data_provider.timeseries_loader import TimeSeriesDatasetLazy
+# Adding VQShape subfolder
+sys.path.append(os.path.abspath('../VQShape'))
+# print("sys.path")
+# print(sys.path)
+
+from data_provider.timeseries_loader import TimeSeriesDatasetLazy
 from vqshape.vqshape_utils import visualize_shapes, plot_code_heatmap
 from vqshape.model import VQShape
 

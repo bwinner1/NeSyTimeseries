@@ -1,5 +1,6 @@
 import matplotlib
 matplotlib.use("Agg")
+import sys
 import os
 import torch
 import torch.nn as nn
@@ -167,6 +168,33 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
 def train(args):
     print("Running train method...")
+    dataset_dirs = ("/home/ml-stud34/data/VQShape/uea/TRAIN")
+    dir = dataset_dirs + "/*.csv"
+    # files = glob.glob(dir)
+    # files = [glob.glob(f"{x}/*.csv") for x in dataset_dirs]
+    
+    
+    file = '*.csv'
+
+
+    # file_exists = os.path.exists(file)
+    # print(os.path.abspath(file))
+    # print(f"File exists: {file_exists}")
+
+    # file = os.path.abspath(file)
+    # file_exists = os.path.exists(file)
+    # print(f"File exists: {file_exists}") 
+    
+
+    
+    files = glob.glob(file)
+
+
+
+    print("files")
+    print(files)
+    print("len(files)")
+    print(len(files))
 
     # Create RTPT object
     rtpt = RTPT(name_initials='BI', experiment_name=f"P2S NeSyCL for TS",
@@ -217,22 +245,22 @@ def train(args):
         concepts_test = sax.transform(ts_test)
 
     elif args.concept == "tsfresh":        
-        path = "pretrain"
+        file = "pretrain"
 
         if args.filter_tsf:
-            path += "/features_filtered"
+            file += "/features_filtered"
         else:
-            path += "/features_unfiltered"
+            file += "/features_unfiltered"
 
         if args.normalize_tsf:
-            path += "_normalized"
+            file += "_normalized"
         
         if args.load_tsf:
             # Load previous .pt files
-            concepts_train = torch.load(f'{path}/tsfresh_{args.ts_setting}_train.pt')
-            concepts_val = torch.load(f'{path}/tsfresh_{args.ts_setting}_val.pt')
-            concepts_test = torch.load(f'{path}/tsfresh_{args.ts_setting}_test.pt')
-            column_labels = torch.load(f'{path}/tsfresh_{args.ts_setting}_column_labels.pt')
+            concepts_train = torch.load(f'{file}/tsfresh_{args.ts_setting}_train.pt')
+            concepts_val = torch.load(f'{file}/tsfresh_{args.ts_setting}_val.pt')
+            concepts_test = torch.load(f'{file}/tsfresh_{args.ts_setting}_test.pt')
+            column_labels = torch.load(f'{file}/tsfresh_{args.ts_setting}_column_labels.pt')
             pass
         else:
             # Use tsfresh and save extracted features into a .pt file
@@ -244,19 +272,17 @@ def train(args):
                                 filtered_columns, scaler, setting=args.ts_setting, filter=args.filter_tsf)
             column_labels = filtered_columns.tolist()
 
-            torch.save(concepts_train, f'{path}/tsfresh_{args.ts_setting}_train.pt')
-            torch.save(concepts_val, f'{path}/tsfresh_{args.ts_setting}_val.pt')
-            torch.save(concepts_test, f'{path}/tsfresh_{args.ts_setting}_test.pt')
-            torch.save(column_labels, f'{path}/tsfresh_{args.ts_setting}_column_labels.pt')
+            torch.save(concepts_train, f'{file}/tsfresh_{args.ts_setting}_train.pt')
+            torch.save(concepts_val, f'{file}/tsfresh_{args.ts_setting}_val.pt')
+            torch.save(concepts_test, f'{file}/tsfresh_{args.ts_setting}_test.pt')
+            torch.save(column_labels, f'{file}/tsfresh_{args.ts_setting}_column_labels.pt')
         # Important for using in utils later:
         args.column_labels = column_labels
         print(f"Number of column_labels: {len(column_labels)}")
 
     elif args.concept == "vqshape":
-        checkpoint_path = "checkpoints/uea_dim512_codebook64/VQShape.ckpt"
-        lit_model = LitVQShape.load_from_checkpoint(checkpoint_path, 'cuda')
-        model = lit_model.model
-        print("vqshape DONE")
+        model.vqshapeTransformer.transform()
+
     else:
         print("Given summarizer doesn't exist")
         exit()
@@ -312,7 +338,8 @@ def train(args):
     # (batch_size, 1, feature_num)
     elif args.concept == "tsfresh":
         args.n_input_dim = concepts_train.size(2)
-    # elif ...
+    # elif args.concept == "vqshape":
+        # args.n_input_dim == #TODO
     else:
         pass
 
