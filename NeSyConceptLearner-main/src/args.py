@@ -53,16 +53,9 @@ def get_args():
     parser.add_argument("--data-dir", type=str, help="Directory to data")
     parser.add_argument("--fp-ckpt", type=str, default=None, help="checkpoint filepath")
 
-    # Slot attention params
-    """ parser.add_argument('--n-slots', default=10, type=int,
-                        help='number of slots for slot attention module')
-    parser.add_argument('--n-iters-slot-att', default=3, type=int,
-                        help='number of iterations in slot attention module')
-    parser.add_argument('--n-attr', default=18, type=int,
-                        help='number of attributes per object')
-    """
+
     
-    parser.add_argument('--concept', choices=["sax", "tsfresh", "vq-vae"],
+    parser.add_argument('--concept', choices=["sax", "tsfresh", "vqshape"],
                         help='concept that should be applied to times series' )
     
     parser.add_argument(
@@ -83,12 +76,25 @@ def get_args():
 
     # tsfresh params
     parser.add_argument(
-        "--load-ts", action="store_true",
+        "--load-tsf", action="store_true",
+          help="Load previous tsfresh data, don't run tsfresh"
+    )
+    parser.add_argument(
+        "--filter-tsf", action="store_true",
+          help="Load previous tsfresh data, don't run tsfresh"
+    )
+    parser.add_argument(
+        "--normalize-tsf", action="store_true",
           help="Load previous tsfresh data, don't run tsfresh"
     )
     parser.add_argument('--ts-setting', choices=["fast", "mid", "slow"],
                         help='function calculator parameter for feature \
                               extraction in tsfresh' )
+    
+    parser.add_argument('--num-tries', default = 1, type=int,
+                        help='Num of tries for avg and max deviation calculation.')
+    
+
 
     args = parser.parse_args()
 
