@@ -559,21 +559,21 @@ class tsfreshTransformer:
         # return torch.tensor(X_filtered.to_numpy(), dtype=torch.float32).unsqueeze(1), filtered_columns
 
 class vqshapeTransformer:
-    @staticmethod
-    def transform():
-    # def transform(dataset, y, columns=None, scaler=None, setting="min", filter=True):
-
+    def __init__(self):
         ### Loading Checkpoint
         checkpoint_path = "VQShape/checkpoints/vqshape_pretrain/uea_dim512_codebook64/VQShape.ckpt"
         lit_model = LitVQShape.load_from_checkpoint(checkpoint_path, 'cuda')
-        model = lit_model.model
+        self.model = lit_model.model
         print("vqshape DONE")
+
+    def transform(self):
+    # def transform(dataset, y, columns=None, scaler=None, setting="min", filter=True):
 
         x = torch.randn(16, 5, 1000).to(device='cuda')  # 16 multivariate time-series, each with 5 channels and 1000 timesteps
         x = F.interpolate(x, 512, mode='linear')  # first interpolate to 512 timesteps
         x = rearrange(x, 'b c t -> (b c) t')  # transform to univariate time-series
 
-        representations, output_dict = model(x, mode='tokenize') # tokenize with VQShape
+        representations, output_dict = self.model(x, mode='tokenize') # tokenize with VQShape
 
         token_representations = representations['token']
         histogram_representations = representations['histogram']

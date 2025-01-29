@@ -254,7 +254,8 @@ def train(args):
         print(f"Number of column_labels: {len(column_labels)}")
 
     elif args.concept == "vqshape":
-        model.vqshapeTransformer.transform()
+        vqshape = model.vqshapeTransformer()
+        vqshape.transform()
 
     else:
         print("Given summarizer doesn't exist")
