@@ -13,22 +13,10 @@ class TimeSeriesDatasetLazy(Dataset):
                  balance=False):
         # === Balanced ===
         if balance:
-            dataset_dirs = []
-            # TODO: Delete the following line
-            current_file_path = os.path.abspath(__file__)
-            print(f"Current file path: {current_file_path}")
-
-            current_dir = os.path.dirname(current_file_path)
-            print(f"Current directory: {current_dir}")
-            
-            print(f"data_root: {data_root}")
+            dataset_dirs = []            
             for task in tasks:
                 dataset_dirs.extend(glob.glob(f"{data_root}/{task}/{split}/*"))
             files = [glob.glob(f"{x}/*.csv") for x in dataset_dirs]
-            print(f"dataset_dirs: {dataset_dirs}")
-            print(f"files: {files}")
-            
-            
             data = []
             if split == "TRAIN":
                 max_dataset_samples = max([len(x) for x in files])

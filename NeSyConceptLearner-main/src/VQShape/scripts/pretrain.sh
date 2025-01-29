@@ -7,8 +7,6 @@
 codebook_size=$1
 dim_model=$2
 data_root=/workspace/repositories/NeSyConceptLearner/data/VQShape
-# /workspace/repositories/NeSyConceptLearner/data
-# /home/ml-stud34/NeSy_for_TS/NeSyConceptLearner-main/data/VQShape/uea
 
 python ./vqshape/pretrain.py \
     --data_root $data_root \

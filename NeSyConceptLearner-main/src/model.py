@@ -19,6 +19,8 @@ from tsfresh import extract_features, extract_relevant_features, select_features
 from tsfresh.feature_extraction import ComprehensiveFCParameters, EfficientFCParameters, MinimalFCParameters
 
 sys.path.append(os.path.abspath('VQShape'))
+
+from einops import rearrange
 from vqshape.pretrain import LitVQShape
 
 from matplotlib import colormaps
@@ -560,27 +562,28 @@ class vqshapeTransformer:
     @staticmethod
     def transform():
     # def transform(dataset, y, columns=None, scaler=None, setting="min", filter=True):
- 
+
         ### Loading Checkpoint
         checkpoint_path = "VQShape/checkpoints/vqshape_pretrain/uea_dim512_codebook64/VQShape.ckpt"
         lit_model = LitVQShape.load_from_checkpoint(checkpoint_path, 'cuda')
         model = lit_model.model
         print("vqshape DONE")
 
-        ### Tokenization
-"""         # load the pre-trained model
-        checkpoint_path = "checkpoints/uea_dim512_codebook64/VQShape.ckpt"
-        lit_model = LitVQShape.load_from_checkpoint(checkpoint_path, 'cuda')
-        model = lit_model.model
-
-        x = torch.randn(16, 5, 1000)  # 16 multivariate time-series, each with 5 channels and 1000 timesteps
+        x = torch.randn(16, 5, 1000).to(device='cuda')  # 16 multivariate time-series, each with 5 channels and 1000 timesteps
         x = F.interpolate(x, 512, mode='linear')  # first interpolate to 512 timesteps
         x = rearrange(x, 'b c t -> (b c) t')  # transform to univariate time-series
 
         representations, output_dict = model(x, mode='tokenize') # tokenize with VQShape
 
         token_representations = representations['token']
-        histogram_representations = representations['histogram'] """
+        histogram_representations = representations['histogram']
+
+        print("token_representations:")
+        print(token_representations)
+        print(token_representations.size())
+        print("histogram_representations:")
+        print(histogram_representations)
+        print(histogram_representations.size())
 
 
 

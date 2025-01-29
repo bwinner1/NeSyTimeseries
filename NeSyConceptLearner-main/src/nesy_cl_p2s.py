@@ -168,43 +168,6 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
 def train(args):
     print("Running train method...")
-    # dataset_dir = ("/home/ml-stud34/data/VQShape/uea/TRAIN")
-    dataset_dir = ("/workspace/repositories/NeSyConceptLearner/data/VQShape/uea/TRAIN/")
-    dir = dataset_dir + "/*.csv"
-    # files = glob.glob(dir)
-    # files = [glob.glob(f"{x}/*.csv") for x in dataset_dirs]
-    
-    
-    file = dataset_dir + '*.csv'
-    file1 = dataset_dir + '0.csv'
-
-    # Open a file in read mode
-
-    """ 
-    # working code
-    file_path = dataset_dir + "/0.csv"
-    with open(file_path, "r") as file:
-        data = file.read()
-        print(data)
-     """
-    
-    file_exists = os.path.exists(file1)
-    print(os.path.abspath(file1))
-    print(f"File exists: {file_exists}")
-
-    file = os.path.abspath(file)
-    file_exists = os.path.exists(file)
-    print(f"File exists: {file_exists}") 
-    
-    files = glob.glob(file)
-
-    print("files")
-    print(files)
-    print("len(files)")
-    print(len(files))
-
-
-
 
     # Create RTPT object
     rtpt = RTPT(name_initials='BI', experiment_name=f"NeSy-Cl for P2S",
