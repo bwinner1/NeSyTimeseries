@@ -6,10 +6,11 @@
 
 codebook_size=$1
 dim_model=$2
-data_root=~/data/VQShape
+data_root=/workspace/repositories/NeSyConceptLearner/data/VQShape
+# /workspace/repositories/NeSyConceptLearner/data
+# /home/ml-stud34/NeSy_for_TS/NeSyConceptLearner-main/data/VQShape/uea
 
-
-python ./pretrain.py \
+python ./vqshape/pretrain.py \
     --data_root $data_root \
     --dim_embedding $dim_model \
     --normalize_length 512 \
