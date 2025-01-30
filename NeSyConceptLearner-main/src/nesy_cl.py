@@ -255,7 +255,11 @@ def train(args):
 
     elif args.concept == "vqshape":
         vqshape = model.vqshapeTransformer()
-        vqshape.transform()
+
+        concepts_train = vqshape.transform(ts_train)
+        concepts_val = vqshape.transform(ts_val)
+        concepts_test = vqshape.transform(ts_test)
+        print("vqshape DONE")
 
     else:
         print("Given summarizer doesn't exist")
@@ -293,12 +297,6 @@ def train(args):
     test_dataset = TensorDataset(concepts_test, labels_test, ts_test)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
-    # if not gridsearching, use default values
-    # else assume that all needed args are provided
-    # if args.mode != "gridsearch":
-    #         args.d = 128
-    #         args.set_transf_hidden = 512
-
     # In general, the SetTransformer requires the following shape:
     # (batch_size * num_elements * feature_dim)
     # n_attr being equal the feature_dim
@@ -312,10 +310,15 @@ def train(args):
     # (batch_size, 1, feature_num)
     elif args.concept == "tsfresh":
         args.n_input_dim = concepts_train.size(2)
-    # elif args.concept == "vqshape":
-        # args.n_input_dim == #TODO
+    elif args.concept == "vqshape":
+        args.n_input_dim = concepts_train.size(2)
     else:
         pass
+
+    print("printing args:")
+    print(args.n_input_dim)
+    print(args.n_heads)
+    print(args.set_transf_hidden)
 
     net = model.NeSyConceptLearner(n_input_dim=args.n_input_dim, device=args.device,
                                    n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden)

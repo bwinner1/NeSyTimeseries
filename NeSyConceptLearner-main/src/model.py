@@ -564,26 +564,62 @@ class vqshapeTransformer:
         checkpoint_path = "VQShape/checkpoints/vqshape_pretrain/uea_dim512_codebook64/VQShape.ckpt"
         lit_model = LitVQShape.load_from_checkpoint(checkpoint_path, 'cuda')
         self.model = lit_model.model
-        print("vqshape DONE")
 
-    def transform(self):
+    def transform(self, dataset):
     # def transform(dataset, y, columns=None, scaler=None, setting="min", filter=True):
+        # x = torch.randn(16, 5, 1000).to(device='cuda')  # 16 multivariate time-series, each with 5 channels and 1000 timesteps
+        x = torch.tensor(dataset, device='cuda', dtype=torch.float32)
+        print("x.size()")
+        print(x.size())
 
-        x = torch.randn(16, 5, 1000).to(device='cuda')  # 16 multivariate time-series, each with 5 channels and 1000 timesteps
+        # F.interpolate requires dimensions (batch, channels, time/height/width)
+        x = x.unsqueeze(1)
         x = F.interpolate(x, 512, mode='linear')  # first interpolate to 512 timesteps
-        x = rearrange(x, 'b c t -> (b c) t')  # transform to univariate time-series
+        x = x.squeeze(1)
+        # x = rearrange(x, 'b c t -> (b c) t')  # transform to univariate time-series
 
-        representations, output_dict = self.model(x, mode='tokenize') # tokenize with VQShape
 
-        token_representations = representations['token']
-        histogram_representations = representations['histogram']
+        ### TODO: Check if sample size in x is too big
+        # If yes (e.g. > 1000 ) cut it in half and apply the model to each part
+        # step by step
+        # At the end of the method, concatenate both tensors 
 
+        max_size = 900
+        if x.size(0) > max_size:
+            print("Splitting dataset into two halves")
+            x_batches = torch.split(x, max_size, dim=0)
+            representations = []
+            for x_b in x_batches:
+                representations.append(self.model(x_b, mode='tokenize')[0]['token'])
+            # representations = self.model(xs, mode='tokenize')[0]['token'] # tokenize with VQShape
+            tokens = torch.cat(representations, dim=0)
+
+            # r_0 = self.model(xs[0], mode='tokenize')[0]['token'] # tokenize with VQShape
+            # torch.cuda.empty_cache()
+            # r_1 = self.model(xs[1], mode='tokenize')[0]['token'] # tokenize with VQShape
+            # tokens = torch.cat((r_0, r_1), dim=0)
+        else:
+            tokens = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
+        
+        # token_representations = representations['token']
+        
+        """
+        print("output_dict")
+        print(output_dict)
+        print(output_dict.size()) """
+
+        # histogram = representations['histogram']
+
+        # Try using token representations:
         print("token_representations:")
-        print(token_representations)
-        print(token_representations.size())
+        print(tokens.size())
+        
+        """ 
         print("histogram_representations:")
         print(histogram_representations)
         print(histogram_representations.size())
+ """
+        return tokens
 
 
 

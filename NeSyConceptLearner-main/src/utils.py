@@ -13,7 +13,7 @@ from matplotlib import rc
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import transforms
 from captum.attr import IntegratedGradients
-from nesy_cl_p2s import apply_net
+from nesy_cl import apply_net
 from matplotlib import colormaps
 
 import string
