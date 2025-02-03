@@ -568,9 +568,13 @@ class vqshapeTransformer:
     def transform(self, dataset):
     # def transform(dataset, y, columns=None, scaler=None, setting="min", filter=True):
         # x = torch.randn(16, 5, 1000).to(device='cuda')  # 16 multivariate time-series, each with 5 channels and 1000 timesteps
+        
         x = torch.tensor(dataset, device='cuda', dtype=torch.float32)
         print("x.size()")
         print(x.size())
+
+        ### Loading model:
+        # model = LitVQShape.load_from_checkpoint(self.checkpoint_path, 'cuda').model
 
         # F.interpolate requires dimensions (batch, channels, time/height/width)
         x = x.unsqueeze(1)
@@ -579,19 +583,24 @@ class vqshapeTransformer:
         # x = rearrange(x, 'b c t -> (b c) t')  # transform to univariate time-series
 
 
-        ### TODO: Check if sample size in x is too big
         # If yes (e.g. > 1000 ) cut it in half and apply the model to each part
         # step by step
         # At the end of the method, concatenate both tensors 
 
-        max_size = 900
+        torch.cuda.empty_cache()
+
+        max_size = 200
         if x.size(0) > max_size:
-            print("Splitting dataset into two halves")
             x_batches = torch.split(x, max_size, dim=0)
+            print(f"Splitting dataset into {len(x_batches)} subparts")
             representations = []
-            for x_b in x_batches:
+            for (i, x_b) in enumerate(x_batches):
                 representations.append(self.model(x_b, mode='tokenize')[0]['token'])
+                print(f"Appended token Nr. {i+1}")
             # representations = self.model(xs, mode='tokenize')[0]['token'] # tokenize with VQShape
+            splits = len(representations)
+            print(f"Split dataset into {splits} subparts")
+
             tokens = torch.cat(representations, dim=0)
 
             # r_0 = self.model(xs[0], mode='tokenize')[0]['token'] # tokenize with VQShape
@@ -601,6 +610,8 @@ class vqshapeTransformer:
         else:
             tokens = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
         
+        # tokens = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
+
         # token_representations = representations['token']
         
         """

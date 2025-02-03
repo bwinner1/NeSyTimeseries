@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use("Agg")
 import sys
 import os
+import gc
 import torch
 import torch.nn as nn
 import numpy as np
@@ -23,6 +24,8 @@ from torch.utils.data import DataLoader, TensorDataset
 from datasets import load_dataset
 from datasets import DatasetDict
 from itertools import product
+
+from torch.profiler import profile, record_function, ProfilerActivity
 
 os.environ["MKL_NUM_THREADS"] = "6"
 os.environ["NUMEXPR_NUM_THREADS"] = "6"
@@ -202,17 +205,7 @@ def train(args):
 
     if args.concept == "sax":
         sax = model.SAXTransformer(n_segments=args.n_segments, alphabet_size=args.alphabet_size)
-        """ 
-        # Adding a third dimension, in the middle of the shape, as needed for SAX
-        concepts_train, _, _ = sax.transform(ts_train.reshape(ts_train.shape[0], 1, ts_train.shape[1]))
-        concepts_val, _, _ = sax.transform(ts_val.reshape(ts_val.shape[0], 1, ts_val.shape[1]))
-        concepts_test, _, _ = sax.transform(ts_test.reshape(ts_test.shape[0], 1, ts_test.shape[1]))
 
-        # Remove middle dimension from (samples, 1, concepts)   
-        concepts_train = torch.squeeze(torch.tensor(concepts_train))
-        concepts_val = torch.squeeze(torch.tensor(concepts_val))
-        concepts_test = torch.squeeze(torch.tensor(concepts_test))
- """
         concepts_train = sax.transform(ts_train)
         concepts_val = sax.transform(ts_val)
         concepts_test = sax.transform(ts_test)
@@ -254,11 +247,14 @@ def train(args):
         print(f"Number of column_labels: {len(column_labels)}")
 
     elif args.concept == "vqshape":
+
         vqshape = model.vqshapeTransformer()
 
-        concepts_train = vqshape.transform(ts_train)
-        concepts_val = vqshape.transform(ts_val)
-        concepts_test = vqshape.transform(ts_test)
+        with torch.no_grad():
+            concepts_train = vqshape.transform(ts_train)
+            concepts_val = vqshape.transform(ts_val)
+            concepts_test = vqshape.transform(ts_test)
+
         print("vqshape DONE")
 
     else:
@@ -343,12 +339,6 @@ def train(args):
                 train=True, plot=False, epoch=epoch)
         scheduler.step()
 
-        # TODO: Set value back to plot=True
-        # Turn Explanations on and off
-        
-        #plot = False
-        #if(epoch == args.epochs - 1):
-        #    plot = True
         plot = args.explain
 
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,

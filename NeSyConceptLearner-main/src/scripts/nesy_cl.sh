@@ -13,7 +13,7 @@ MODEL="ts-concept-learner-$NUM"
 CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl.py --dataset p2s \
 --mode train --num-tries 5 \
 --concept vqshape --n-heads 4 --set-transf-hidden 32 \
---epochs 50 --name $MODEL --lr 0.0001 --batch-size 128 --seed 42 --num-workers 4 \
+--epochs 50 --name $MODEL --lr 0.0001 --batch-size 32 --seed 42 --num-workers 4 \
 --explain
 
 # --explain # enable xai features
@@ -27,7 +27,8 @@ CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl.py --dataset p2s \
 # --load-tsf --normalize-tsf \
 
 # ### VQShape
-# --concept vqshape --ts-setting slow --n-heads 4 --set-transf-hidden 256 \
+# --concept vqshape --n-heads 4 --set-transf-hidden 32 \
+# --concept vqshape --n-heads 4 --set-transf-hidden 256 \
 
 
 
