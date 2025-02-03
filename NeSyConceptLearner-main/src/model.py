@@ -582,37 +582,7 @@ class vqshapeTransformer:
         x = x.squeeze(1)
         # x = rearrange(x, 'b c t -> (b c) t')  # transform to univariate time-series
 
-
-        # If yes (e.g. > 1000 ) cut it in half and apply the model to each part
-        # step by step
-        # At the end of the method, concatenate both tensors 
-
-        torch.cuda.empty_cache()
-
-        max_size = 200
-        if x.size(0) > max_size:
-            x_batches = torch.split(x, max_size, dim=0)
-            print(f"Splitting dataset into {len(x_batches)} subparts")
-            representations = []
-            for (i, x_b) in enumerate(x_batches):
-                representations.append(self.model(x_b, mode='tokenize')[0]['token'])
-                print(f"Appended token Nr. {i+1}")
-            # representations = self.model(xs, mode='tokenize')[0]['token'] # tokenize with VQShape
-            splits = len(representations)
-            print(f"Split dataset into {splits} subparts")
-
-            tokens = torch.cat(representations, dim=0)
-
-            # r_0 = self.model(xs[0], mode='tokenize')[0]['token'] # tokenize with VQShape
-            # torch.cuda.empty_cache()
-            # r_1 = self.model(xs[1], mode='tokenize')[0]['token'] # tokenize with VQShape
-            # tokens = torch.cat((r_0, r_1), dim=0)
-        else:
-            tokens = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
-        
-        # tokens = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
-
-        # token_representations = representations['token']
+        tokens = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
         
         """
         print("output_dict")
