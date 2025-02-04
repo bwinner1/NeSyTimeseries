@@ -220,7 +220,7 @@ def create_expl_tsfresh(time_series, concepts, output, saliencies, true_label, p
 
     importance = np.round(saliencies, 2)
     column_names = np.array(column_names)
-    concepts = np.array(concepts)
+    concepts = np.round(concepts, 2)
 
     # Get the indices of the 10 largest values
     best_indices = np.argsort(importance)[-10:][::-1]  # Sort indices, take the last 10, and reverse for descending order

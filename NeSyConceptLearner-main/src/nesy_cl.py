@@ -227,7 +227,16 @@ def train(args):
             concepts_val = torch.load(f'{file}/tsfresh_{args.ts_setting}_val.pt')
             concepts_test = torch.load(f'{file}/tsfresh_{args.ts_setting}_test.pt')
             column_labels = torch.load(f'{file}/tsfresh_{args.ts_setting}_column_labels.pt')
-            pass
+
+            # TODO: Delete the following, should be irrelevant after saving the scaler everything again
+            scaler_path = f'{file}/tsfresh_{args.ts_setting}_scaler.pt'
+            if os.path.exists(scaler_path):
+                scaler = torch.load(scaler_path)
+                print("Scaler loaded successfully!")
+            else:
+                scaler = model.tsfreshTransformer.fit_scaler(concepts_train.squeeze(1).to("cpu").numpy())
+                print("Scaler computed manually")
+
         else:
             # Use tsfresh and save extracted features into a .pt file
             concepts_train, filtered_columns, scaler = model.tsfreshTransformer.transform(ts_train, 
@@ -242,6 +251,11 @@ def train(args):
             torch.save(concepts_val, f'{file}/tsfresh_{args.ts_setting}_val.pt')
             torch.save(concepts_test, f'{file}/tsfresh_{args.ts_setting}_test.pt')
             torch.save(column_labels, f'{file}/tsfresh_{args.ts_setting}_column_labels.pt')
+            
+            torch.save(scaler, f'{file}/tsfresh_{args.ts_setting}_scaler.pt')
+
+        args.scaler = scaler
+
         # Important for using in utils later:
         args.column_labels = column_labels
         print(f"Number of column_labels: {len(column_labels)}")
@@ -501,15 +515,16 @@ def plot(args):
 def apply_net(input, net, args):
     """
     Apply given network. Depending on the chosen symbolizer, 
-    the input will be prepared accordingly. F.e. the input for SAX will be one-hot encoded
+    the input will be prepared accordingly. E.g. the input for SAX will be one-hot encoded
     """
 
     # Preparing the input
     if(args.concept == "sax"):
         input = nn.functional.one_hot(input, num_classes=args.alphabet_size)
     elif(args.concept == "tsfresh"):
-        pass
-
+        input = input.squeeze(1).to("cpu").numpy()
+        input = args.scaler.transform(input)
+        input = torch.tensor(input, device="cuda").unsqueeze(1)
 
     # Applying the SetTransformer
     output_cls, output_attr = net(input)

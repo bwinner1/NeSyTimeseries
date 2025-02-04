@@ -505,6 +505,13 @@ class tsfreshTransformer:
         self.alphabet_size = alphabet_size
         self.sax = SAX(self.n_segments, self.alphabet_size)
  """
+    ### TODO: Delete later, after running everything once
+    @staticmethod
+    def fit_scaler(dataset):
+        scaler = StandardScaler()
+        scaler.fit(dataset)
+        return scaler
+        
     @staticmethod
     def transform(dataset, y, columns=None, scaler=None, setting="min", filter=True):
         # dataset, y = load_unit_test()
@@ -552,11 +559,19 @@ class tsfreshTransformer:
         else:
             X = X[columns]
 
-        X_normalized = scaler.transform(X)
+        print("X.shape:")
+        print(X.shape)
+
+        # old version; moved normalization into apply_net
+        # X_normalized = scaler.transform(X)
+        
+        X_normalized = X.to_numpy()
         
         # Convert the pd to a tensor, add an inner dimension
         return torch.tensor(X_normalized, dtype=torch.float32).unsqueeze(1), columns, scaler
         # return torch.tensor(X_filtered.to_numpy(), dtype=torch.float32).unsqueeze(1), filtered_columns
+
+
 
 class vqshapeTransformer:
     def __init__(self):
