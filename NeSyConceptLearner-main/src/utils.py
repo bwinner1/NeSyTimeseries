@@ -223,6 +223,8 @@ def create_expl_tsfresh(time_series, concepts, output, saliencies, true_label, p
     concepts = np.round(concepts, 2)
 
     # Get the indices of the 10 largest values
+     
+    worst_indices = np.argsort(importance)[:10]  # Sort indices, take the first 10 for ascending order
     best_indices = np.argsort(importance)[-10:][::-1]  # Sort indices, take the last 10, and reverse for descending order
 
     # print("column_names.shape")
@@ -235,16 +237,17 @@ def create_expl_tsfresh(time_series, concepts, output, saliencies, true_label, p
     best_columns = column_names[best_indices]
     best_concepts = concepts[0][best_indices]
 
-
+    worst_importance = importance[worst_indices]
+    worst_columns = column_names[worst_indices]
+    worst_concepts = concepts[0][worst_indices]
     
-
-
     # Normalize the importance values for coloring
     norm = plt.Normalize(vmin=-1, vmax=1)
     cmap = plt.cm.viridis
 
     fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(12, 7))
 
+    ### TODO: Continue from here, maybe add a second subplot for Worst 10 (ax2[0], ax3[1])
     table = ax2.table(cellText=np.column_stack((best_columns, best_concepts, best_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
 
     # table.set_fontsize(18)
