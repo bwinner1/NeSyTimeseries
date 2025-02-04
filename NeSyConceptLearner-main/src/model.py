@@ -582,7 +582,11 @@ class vqshapeTransformer:
         x = x.squeeze(1)
         # x = rearrange(x, 'b c t -> (b c) t')  # transform to univariate time-series
 
-        tokens = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
+        # TODO: Uncomment the old version; currently testing with histogram
+        # output = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
+    
+        output = self.model(x, mode='tokenize')[0]['histogram'] # tokenize with VQShape
+        output = output.unsqueeze(1)
         
         """
         print("output_dict")
@@ -593,14 +597,14 @@ class vqshapeTransformer:
 
         # Try using token representations:
         print("token_representations:")
-        print(tokens.size())
+        print(output.size())
         
         """ 
         print("histogram_representations:")
         print(histogram_representations)
         print(histogram_representations.size())
  """
-        return tokens
+        return output
 
 
 

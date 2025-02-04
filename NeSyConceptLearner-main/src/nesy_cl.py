@@ -306,7 +306,11 @@ def train(args):
     # (batch_size, 1, feature_num)
     elif args.concept == "tsfresh":
         args.n_input_dim = concepts_train.size(2)
+
+    # vqshape input shape:
+    # (batchsize, codeblock_size, features)
     elif args.concept == "vqshape":
+        print(f"concepts_train.size(2): {concepts_train.size(2)}")
         args.n_input_dim = concepts_train.size(2)
     else:
         pass
@@ -503,6 +507,9 @@ def apply_net(input, net, args):
     # Preparing the input
     if(args.concept == "sax"):
         input = nn.functional.one_hot(input, num_classes=args.alphabet_size)
+    elif(args.concept == "tsfresh"):
+        pass
+
 
     # Applying the SetTransformer
     output_cls, output_attr = net(input)
@@ -552,7 +559,6 @@ def gridsearch(args):
         settings = ("slow", "mid")
         set_heads = (4, 8, 16,)
         hidden_dim = (128, 256, 512)
-        # TODO: If this doesn't finish running, run the rest of the iterations
 
         args.batch_size = 128
 

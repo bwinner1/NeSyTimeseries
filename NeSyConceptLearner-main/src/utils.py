@@ -218,31 +218,44 @@ def create_expl_tsfresh(time_series, concepts, output, saliencies, true_label, p
     # print(saliencies)
     # print(saliencies.shape) # (1, 462)
 
-
-    importance = np.array(saliencies)
+    importance = np.round(saliencies, 2)
     column_names = np.array(column_names)
+    concepts = np.array(concepts)
 
     # Get the indices of the 10 largest values
     best_indices = np.argsort(importance)[-10:][::-1]  # Sort indices, take the last 10, and reverse for descending order
 
+    # print("column_names.shape")
+    # print(column_names.shape)
+    # print("concepts.shape")
+    # print(concepts.shape)
+
     # Retrieve the corresponding values and column names
-    best_values = importance[best_indices]
+    best_importance = importance[best_indices]
     best_columns = column_names[best_indices]
+    best_concepts = concepts[0][best_indices]
+
+
+    
+
 
     # Normalize the importance values for coloring
-    norm = plt.Normalize(vmin=min(importance), vmax=max(importance))
+    norm = plt.Normalize(vmin=-1, vmax=1)
     cmap = plt.cm.viridis
 
-    fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(10, 6))
+    fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(12, 7))
 
-    table = ax2.table(cellText=np.column_stack((best_columns, best_values)), colLabels=["Feature", "Importance"], loc="center", cellLoc='center')
+    table = ax2.table(cellText=np.column_stack((best_columns, best_concepts, best_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
+
+    # table.set_fontsize(18)
+    # table.scale(1.5, 1.5)
 
     # Loop through each cell and apply the color map based on the importance value
     for (i, j), cell in table.get_celld().items():
         if i == 0:  # Skip header row
             continue
         # Color the cells based on importance
-        cell.set_facecolor(cmap(norm(best_values[i-1])))
+        cell.set_facecolor(cmap(norm(best_importance[i-1])))
 
     # Turn off axis and display the table
     ax2.axis('off')
