@@ -599,9 +599,17 @@ class vqshapeTransformer:
 
         # TODO: Uncomment the old version; currently testing with histogram
         # output = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
-    
-        output = self.model(x, mode='tokenize')[0]['histogram'] # tokenize with VQShape
-        output = output.unsqueeze(1)
+
+        output = self.model(x, mode='tokenize')[0]
+        print("output['token']")
+        print(output['token'])
+        print(output['token'].size())
+        print("output['histogram']")
+        print(output['histogram'][0])
+        print(output['histogram'].size())
+        
+        histogramm = self.model(x, mode='tokenize')[0]['histogram'] # tokenize with VQShape
+        histogramm = histogramm.unsqueeze(1)
         
         """
         print("output_dict")
@@ -612,14 +620,14 @@ class vqshapeTransformer:
 
         # Try using token representations:
         print("token_representations:")
-        print(output.size())
+        print(histogramm.size())
         
         """ 
         print("histogram_representations:")
         print(histogram_representations)
         print(histogram_representations.size())
  """
-        return output
+        return histogramm
 
 
 

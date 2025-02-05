@@ -205,25 +205,13 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     sorted_hlines = [hlines[i] for i in sorted_indices]
     ax.legend(handles=sorted_hlines, labels=sorted_letters)
 
-def create_expl_tsfresh(time_series, concepts, output, saliencies, true_label, pred_label, column_names):
-    """Plots a figure of a time series sample.
-      Moreover returns a table with most important featues"""
- 
-    saliencies = saliencies[0]
-    
-    # Plot samples
-    fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
-    ax1.plot(time_series)
-    # print("saliencies:")
-    # print(saliencies)
-    # print(saliencies.shape) # (1, 462)
-
+def create_expl_tsfresh(concepts, saliencies, column_names):
     importance = np.round(saliencies, 2)
     column_names = np.array(column_names)
     concepts = np.round(concepts, 2)
 
     # Get the indices of the 10 largest values
-     
+    
     worst_indices = np.argsort(importance)[:10]  # Sort indices, take the first 10 for ascending order
     best_indices = np.argsort(importance)[-10:][::-1]  # Sort indices, take the last 10, and reverse for descending order
 
@@ -240,32 +228,74 @@ def create_expl_tsfresh(time_series, concepts, output, saliencies, true_label, p
     worst_importance = importance[worst_indices]
     worst_columns = column_names[worst_indices]
     worst_concepts = concepts[0][worst_indices]
+    dict = {'best_importance' : best_importance,
+         'best_columns' : best_columns,
+         'best_concepts' : best_concepts,
+         'worst_importance' : worst_importance,
+         'worst_columns' : worst_columns,
+         'worst_concepts' : worst_concepts }
+    return dict
+
+def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label):
+    """Plots a figure of a time series sample.
+      Moreover returns a table with most important featues"""
+ 
+    # saliencies = saliencies
     
+    # Plot samples
+    fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
+    ax1.plot(time_series)
+    # print("saliencies:")
+    # print(saliencies)
+    # print(saliencies.shape) # (1, 462)
+
+
     # Normalize the importance values for coloring
     norm = plt.Normalize(vmin=-1, vmax=1)
     cmap = plt.cm.viridis
 
-    fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(12, 7))
+    fig2, ax2 = plt.subplots(nrows=2, ncols=1, figsize=(10, 5))
 
-    ### TODO: Continue from here, maybe add a second subplot for Worst 10 (ax2[0], ax3[1])
-    table = ax2.table(cellText=np.column_stack((best_columns, best_concepts, best_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
+    best_columns = exp['best_columns']
+    best_concepts = exp['best_concepts']
+    best_importance = exp['best_importance']
+    worst_columns = exp['worst_columns']
+    worst_concepts = exp['worst_concepts']
+    worst_importance = exp['worst_importance']
+
+    best_table = ax2[0].table(cellText=np.column_stack((best_columns, best_concepts, best_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
+    worst_table = ax2[1].table(cellText=np.column_stack((worst_columns, worst_concepts, worst_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
 
     # table.set_fontsize(18)
     # table.scale(1.5, 1.5)
+    # best_table.auto_set_font_size(False)
+    # best_table.set_fontsize(20) 
 
+    # worst_table.auto_set_font_size(False)
+    # worst_table.set_fontsize(18)
+    # worst_table.scale(1.5, 1.5)
+    
     # Loop through each cell and apply the color map based on the importance value
-    for (i, j), cell in table.get_celld().items():
+    for (i, j), cell in best_table.get_celld().items():
         if i == 0:  # Skip header row
             continue
         # Color the cells based on importance
         cell.set_facecolor(cmap(norm(best_importance[i-1])))
 
+    for (i, j), cell in worst_table.get_celld().items():
+        if i == 0:  # Skip header row
+            continue
+        # Color the cells based on importance
+        cell.set_facecolor(cmap(norm(worst_importance[i-1])))
+
     # Turn off axis and display the table
-    ax2.axis('off')
+    ax2[0].axis('off')
+    ax2[1].axis('off')
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])  # Empty array for the colorbar
-    plt.colorbar(sm, ax=ax2, orientation="horizontal", fraction=0.02, pad=0.04)
-
+    plt.colorbar(sm, ax=ax2[1], orientation="horizontal", fraction=0.02, pad=0.04)
+    
+    """ 
     #heatmap = ax2.bar(best_columns, best_values)
                       #, cmap='viridis', interpolation='none')  
 
@@ -294,11 +324,13 @@ def create_expl_tsfresh(time_series, concepts, output, saliencies, true_label, p
     #ax2.set_yticks(np.arange(saliencies.shape[0]))
     
     # plot a table with top 5 or top 10 features
-
+ """
+    
     fig1.suptitle(f"True Class: {true_label}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
+    fig2.suptitle(f"10 Features with Best / Worst Prediction Contribution; True Class: {true_label}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
     return fig1, fig2
 
-def create_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_label):
+def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_label):
     """
     Plots a figure of a time series sample with SAX labels. Marks important segments with a red box.
     """
@@ -458,28 +490,13 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
         # get explanations of set classifier
         table_saliencies = generate_intgrad_captum_table(net.set_cls, output_attr, preds)
 
-        """ 
-        for img_id, (img, gt_table, pred_table, table_expl, img_expl, true_label, pred_label, imgid) in enumerate(zip(
-                imgs, target_set, output_attr, table_saliencies,
-                img_saliencies, img_class_ids, preds,
-                img_ids
-        )):
-            # unnormalize images
-            img = img / 2. + 0.5  # Rescale to [0, 1].
-
-            fig = create_expl_images(np.array(transforms.ToPILImage()(img.cpu()).convert("RGB")),
-                                           pred_table.detach().cpu().numpy(),
-                                           table_expl.detach().cpu().numpy(),
-                                           img_expl.detach().cpu().numpy(),
-                                           true_label, pred_label, attr_labels) """
-
         # Add first 10 time series with their explanations to TensorBoard
         for sample_id, (sample, concept, output, table_expl, true_label, pred_label) in enumerate(zip(
                 samples, concepts, output_attr, table_saliencies, labels, preds
         )):
             
             if args.concept == "sax":
-                fig1, fig2 = create_expl_SAX(sample.cpu().numpy(),
+                fig1, fig2 = plot_expl_SAX(sample.cpu().numpy(),
                                     concept.cpu().numpy(),
                                     output.cpu().numpy(),
                                     table_expl.cpu().numpy(),
@@ -491,11 +508,18 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                     break
                 
             elif args.concept == "tsfresh":
-                fig1, fig2 = create_expl_tsfresh(sample.cpu().numpy(),
-                    concept.cpu().numpy(),
+                concepts = concept.cpu().numpy()
+                saliencies = table_expl.cpu().numpy()[0]
+
+                # Create tsfresh explanations
+                dict_exp = create_expl_tsfresh(concepts, saliencies, args.column_labels)
+
+
+                fig1, fig2 = plot_expl_tsfresh(sample.cpu().numpy(),
+                    concepts,
                     output.cpu().numpy(),
-                    table_expl.cpu().numpy(),
-                    true_label, pred_label, args.column_labels)
+                    dict_exp,
+                    true_label, pred_label)
                 writer.add_figure(f"{tagname}_{sample_id}_tsfresh_A", fig1, epoch)
                 writer.add_figure(f"{tagname}_{sample_id}_tsfresh_B", fig2, epoch)
                 
