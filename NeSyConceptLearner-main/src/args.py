@@ -62,6 +62,10 @@ def get_args():
         "--explain", action="store_true",
           help="Plot model explanations"
     )
+    parser.add_argument(
+        "--explain-all", action="store_true",
+          help="Print explanations over all samples"
+    )
 
     parser.add_argument('--n-heads', type=int,
                         help='number of set heads for set transformer')

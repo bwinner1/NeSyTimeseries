@@ -254,7 +254,7 @@ def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label
     norm = plt.Normalize(vmin=-1, vmax=1)
     cmap = plt.cm.viridis
 
-    fig2, ax2 = plt.subplots(nrows=2, ncols=1, figsize=(10, 5))
+    fig2, ax2 = plt.subplots(nrows=2, ncols=1, figsize=(20, 5))
 
     best_columns = exp['best_columns']
     best_concepts = exp['best_concepts']
@@ -326,8 +326,8 @@ def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label
     # plot a table with top 5 or top 10 features
  """
     
-    fig1.suptitle(f"True Class: {true_label}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
-    fig2.suptitle(f"10 Features with Best / Worst Prediction Contribution; True Class: {true_label}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
+    fig1.suptitle(f"True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
+    fig2.suptitle(f"10 Features with Best / Worst Prediction Contribution; True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
     return fig1, fig2
 
 def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_label):
@@ -490,6 +490,18 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
         # get explanations of set classifier
         table_saliencies = generate_intgrad_captum_table(net.set_cls, output_attr, preds)
 
+        # Dictionary to save importance statistics over all samples
+        global_importance = {}
+
+        if args.explain_all:
+            if args.concept == "sax":
+                pass
+            elif args.concept == "tsfresh":
+                # Per sample, count the top 10 features contributing positively 
+                # and negatively to a class prediction.
+                best_features = {}
+                worst_features = {}
+
         # Add first 10 time series with their explanations to TensorBoard
         for sample_id, (sample, concept, output, table_expl, true_label, pred_label) in enumerate(zip(
                 samples, concepts, output_attr, table_saliencies, labels, preds
@@ -513,7 +525,6 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
 
                 # Create tsfresh explanations
                 dict_exp = create_expl_tsfresh(concepts, saliencies, args.column_labels)
-
 
                 fig1, fig2 = plot_expl_tsfresh(sample.cpu().numpy(),
                     concepts,

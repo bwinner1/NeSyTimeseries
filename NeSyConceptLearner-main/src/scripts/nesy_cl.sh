@@ -15,16 +15,9 @@ CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl.py --dataset p2s \
 --concept tsfresh --ts-setting slow --n-heads 4 --set-transf-hidden 256 \
 --load-tsf \
 --epochs 50 --name $MODEL --lr 0.00005 --batch-size 256 --seed 42 --num-workers 0 \
---explain
+--explain --explain-all
 
-# --epochs 50 --name $MODEL --lr 0.00005 --batch-size 256 --seed 42 --num-workers 0 \
-# --explain
-
-# --concept vqshape --n-heads 4 --set-transf-hidden 32 \
-
-
-
-# --explain # enable xai features
+# --load-tsf \
 
 # ### SAX
 # --concept sax --n-segments 32 --alphabet-size 10 --n-heads 4 --set-transf-hidden 128 \
@@ -33,15 +26,14 @@ CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl.py --dataset p2s \
 
 # ### tsfresh
 # --concept tsfresh --ts-setting slow --n-heads 4 --set-transf-hidden 256 \
-# --load-tsf --normalize-tsf \
+# --load-tsf \
 
 # ### VQShape
 # --concept vqshape --n-heads 4 --set-transf-hidden 32 \
-# --concept vqshape --n-heads 4 --set-transf-hidden 256 \
 
+# --explain # enable xai features
 
-
-# --load-tsf --filter-tsf --normalize-tsff --filter-tsf --normalize-tsf
+# --load-tsf --filter-tsf --normalize-tsf
 # fast | mid| slow
 
 # --no-cuda  # for cpu usage
