@@ -132,6 +132,21 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
     running_loss = 0
     preds_all = []
     labels_all = []
+
+
+    # Dictionary to save importance statistics over all samples
+    # global_importance = {}
+
+    if args.explain_all:
+        if args.concept == "sax":
+            pass
+        elif args.concept == "tsfresh":
+            # Per sample, count the top 10 features contributing positively 
+            # and negatively to a class prediction, add them to the dictionary.
+            # The feature name is the key, while the value is the count
+            args.best_features = {}
+            args.worst_features = {}
+
     for i, (concepts, labels, _) in enumerate(loader, start=epoch * iters_per_epoch):
 
         # Move both tensors to correct device
@@ -156,6 +171,21 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         # Plot predictions in Tensorboard
         if plot and not(i % iters_per_epoch):
             utils.write_expls(net, loader, f"Expl/{split}", epoch, writer, args)
+
+
+    # If global explainability is desired, save best_features and worst_features into a csv
+    if args.concept == "tsfresh" and args.explain_all:
+        filename_best = f"xai/tsfresh/{split}/best_features_{utils.get_current_time()}.csv"
+        with open(filename_best, "a") as file_best:
+            file_best.write("feature_name, count\n")
+            for f, c in args.best_features.items():
+                file_best.write(f"{f};{c}\n")
+
+        filename_worst = f"xai/tsfresh/{split}/worst_features_{utils.get_current_time()}.csv"
+        with open(filename_worst, "a") as file_worst:
+            file_worst.write("feature_name, count\n")
+            for f, c in args.worst_features.items():
+                file_worst.write(f"{f};{c}\n")    
 
     bal_acc = metrics.balanced_accuracy_score(labels_all, preds_all)
 
@@ -247,6 +277,7 @@ def train(args):
                                 filtered_columns, scaler, setting=args.ts_setting, filter=args.filter_tsf)
             column_labels = filtered_columns.tolist()
 
+
             torch.save(concepts_train, f'{file}/tsfresh_{args.ts_setting}_train.pt')
             torch.save(concepts_val, f'{file}/tsfresh_{args.ts_setting}_val.pt')
             torch.save(concepts_test, f'{file}/tsfresh_{args.ts_setting}_test.pt')
@@ -256,8 +287,11 @@ def train(args):
 
         args.scaler = scaler
 
+        # args.column_labels = column_labels
+
+        # Remove irrelevant first part "ts__" of column names
+        args.column_labels = [s[4:] for s in column_labels]
         # Important for using in utils later:
-        args.column_labels = column_labels
         print(f"Number of column_labels: {len(column_labels)}")
 
     elif args.concept == "vqshape":
@@ -352,12 +386,12 @@ def train(args):
     writer = utils.create_writer(args)
 
     cur_best_val_loss = np.inf
+    plot = args.explain 
     for epoch in range(args.epochs):
         _ = run(net, train_loader, optimizer, criterion, split='train', args=args, writer=writer,
                 train=True, plot=False, epoch=epoch)
         scheduler.step()
 
-        plot = args.explain
 
         val_loss = run(net, val_loader, optimizer, criterion, split='val', args=args, writer=writer,
                         train=False, plot=plot, epoch=epoch)                       
@@ -401,11 +435,11 @@ def train(args):
     # TODO: Set values back to plot=True
 
     run(net, train_loader, optimizer, criterion, split='train_best', args=args,
-        writer=writer, train=False, plot=False, epoch=0)
+        writer=writer, train=False, plot=plot, epoch=0)
     run(net, val_loader, optimizer, criterion, split='val_best', args=args,
-        writer=writer, train=False, plot=False, epoch=0)
+        writer=writer, train=False, plot=plot, epoch=0)
     run(net, test_loader, optimizer, criterion, split='test_best', args=args,
-        writer=writer, train=False, plot=False, epoch=0)
+        writer=writer, train=False, plot=plot, epoch=0)
 
     writer.close()
 

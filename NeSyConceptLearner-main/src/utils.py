@@ -509,18 +509,7 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
         # get explanations of set classifier
         table_saliencies = generate_intgrad_captum_table(net.set_cls, output_attr, preds)
 
-        # Dictionary to save importance statistics over all samples
-        global_importance = {}
 
-        if args.explain_all:
-            if args.concept == "sax":
-                pass
-            elif args.concept == "tsfresh":
-                # Per sample, count the top 10 features contributing positively 
-                # and negatively to a class prediction, add them to the dictionary.
-                # The feature name is the key, while the value is the count
-                best_features = {}
-                worst_features = {}
 
         # Add first 10 time series with their explanations to TensorBoard
         for sample_id, (sample, concept, output, table_expl, true_label, pred_label) in enumerate(zip(
@@ -542,9 +531,8 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
             elif args.concept == "tsfresh":
 
                 if args.explain_all:
-                    # TODO: Do sth with best_features & worst_features
-                    update_feature_dict(best_features, args.column_labels) 
-                    update_feature_dict(worst_features, args.column_labels)
+                    update_feature_dict(args.best_features, args.column_labels) 
+                    update_feature_dict(args.worst_features, args.column_labels)
 
                 if sample_id < 10:
 
@@ -559,17 +547,14 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                         output.cpu().numpy(),   
                         dict_exp,
                         true_label, pred_label)
+                    
                     writer.add_figure(f"{tagname}_{sample_id}_tsfresh_A", fig1, epoch)
                     writer.add_figure(f"{tagname}_{sample_id}_tsfresh_B", fig2, epoch)
-                
-                # if sample_id >= 10:
-                #     break
-        break
 
-# Is used only in plot(), which currently isn't being used. 
 def save_expls(net, data_loader, tagname, save_path):
     """
     Stores the explanation plots at the specified location.
+    (Is used only in plot(), which currently isn't being used.)
     """
 
     xticklabels = ['Sphere', 'Cube', 'Cylinder',
