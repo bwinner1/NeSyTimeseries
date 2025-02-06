@@ -205,15 +205,20 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     sorted_hlines = [hlines[i] for i in sorted_indices]
     ax.legend(handles=sorted_hlines, labels=sorted_letters)
 
-def create_expl_tsfresh(concepts, saliencies, column_names):
+def create_expl_tsfresh(concepts, saliencies, column_names, amount = 10):
+    """
+    Returns a dict with the best/worst columns, concepts and importance
+    of the top 10 features.
+    """
+
     importance = np.round(saliencies, 2)
     column_names = np.array(column_names)
     concepts = np.round(concepts, 2)
 
     # Get the indices of the 10 largest values
     
-    worst_indices = np.argsort(importance)[:10]  # Sort indices, take the first 10 for ascending order
-    best_indices = np.argsort(importance)[-10:][::-1]  # Sort indices, take the last 10, and reverse for descending order
+    worst_indices = np.argsort(importance)[:amount]  # Sort indices, take the first 10 for ascending order
+    best_indices = np.argsort(importance)[-amount:][::-1]  # Sort indices, take the last 10, and reverse for descending order
 
     # print("column_names.shape")
     # print(column_names.shape)
@@ -471,6 +476,20 @@ def plot_confusion_matrix(y_true, y_pred, classes, normalize=True, title=None,
     return ax
 
 
+
+def update_feature_dict(f_dict, features):
+    """
+    Takes a dict and updates the counts for all of the given features
+    """
+
+    for f in features:
+        if f_dict.get(f) is not None:
+            f_dict[f] += 1
+        else:
+            f_dict[f] = 1
+    pass
+
+
 def write_expls(net, data_loader, tagname, epoch, writer, args):
     """
     Writes NeSy Concept Learner explanations to TensorBoard.
@@ -498,7 +517,8 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 pass
             elif args.concept == "tsfresh":
                 # Per sample, count the top 10 features contributing positively 
-                # and negatively to a class prediction.
+                # and negatively to a class prediction, add them to the dictionary.
+                # The feature name is the key, while the value is the count
                 best_features = {}
                 worst_features = {}
 
@@ -520,22 +540,30 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                     break
                 
             elif args.concept == "tsfresh":
-                concepts = concept.cpu().numpy()
-                saliencies = table_expl.cpu().numpy()[0]
 
-                # Create tsfresh explanations
-                dict_exp = create_expl_tsfresh(concepts, saliencies, args.column_labels)
+                if args.explain_all:
+                    # TODO: Do sth with best_features & worst_features
+                    update_feature_dict(best_features, args.column_labels) 
+                    update_feature_dict(worst_features, args.column_labels)
 
-                fig1, fig2 = plot_expl_tsfresh(sample.cpu().numpy(),
-                    concepts,
-                    output.cpu().numpy(),
-                    dict_exp,
-                    true_label, pred_label)
-                writer.add_figure(f"{tagname}_{sample_id}_tsfresh_A", fig1, epoch)
-                writer.add_figure(f"{tagname}_{sample_id}_tsfresh_B", fig2, epoch)
+                if sample_id < 10:
+
+                    concepts = concept.cpu().numpy()
+                    saliencies = table_expl.cpu().numpy()[0]
+
+                    # Create tsfresh explanations
+                    dict_exp = create_expl_tsfresh(concepts, saliencies, args.column_labels)
+
+                    fig1, fig2 = plot_expl_tsfresh(sample.cpu().numpy(),
+                        concepts,
+                        output.cpu().numpy(),   
+                        dict_exp,
+                        true_label, pred_label)
+                    writer.add_figure(f"{tagname}_{sample_id}_tsfresh_A", fig1, epoch)
+                    writer.add_figure(f"{tagname}_{sample_id}_tsfresh_B", fig2, epoch)
                 
-                if sample_id >= 10:
-                    break
+                # if sample_id >= 10:
+                #     break
         break
 
 # Is used only in plot(), which currently isn't being used. 
