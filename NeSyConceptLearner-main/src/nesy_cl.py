@@ -174,16 +174,16 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
 
     # If global explainability is desired, save best_features and worst_features into a csv
-    if args.concept == "tsfresh" and args.explain_all:
+    if split[-4:]=="best" and args.concept == "tsfresh" and args.explain_all:
         filename_best = f"xai/tsfresh/{split}/best_features_{utils.get_current_time()}.csv"
         with open(filename_best, "a") as file_best:
-            file_best.write("feature_name, count\n")
+            file_best.write("feature_name; count\n")
             for f, c in args.best_features.items():
                 file_best.write(f"{f};{c}\n")
 
         filename_worst = f"xai/tsfresh/{split}/worst_features_{utils.get_current_time()}.csv"
         with open(filename_worst, "a") as file_worst:
-            file_worst.write("feature_name, count\n")
+            file_worst.write("feature_name; count\n")
             for f, c in args.worst_features.items():
                 file_worst.write(f"{f};{c}\n")    
 

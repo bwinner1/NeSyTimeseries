@@ -205,7 +205,7 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     sorted_hlines = [hlines[i] for i in sorted_indices]
     ax.legend(handles=sorted_hlines, labels=sorted_letters)
 
-def create_expl_tsfresh(concepts, saliencies, column_names, amount = 10):
+def create_expl_tsfresh(concepts, saliencies, column_names, amount = 3):
     """
     Returns a dict with the best/worst columns, concepts and importance
     of the top 10 features.
@@ -219,11 +219,6 @@ def create_expl_tsfresh(concepts, saliencies, column_names, amount = 10):
     
     worst_indices = np.argsort(importance)[:amount]  # Sort indices, take the first 10 for ascending order
     best_indices = np.argsort(importance)[-amount:][::-1]  # Sort indices, take the last 10, and reverse for descending order
-
-    # print("column_names.shape")
-    # print(column_names.shape)
-    # print("concepts.shape")
-    # print(concepts.shape)
 
     # Retrieve the corresponding values and column names
     best_importance = importance[best_indices]
@@ -530,18 +525,19 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 
             elif args.concept == "tsfresh":
 
+                concepts = concept.cpu().numpy()
+                saliencies = table_expl.cpu().numpy()[0]
+
+                # Create tsfresh explanations
+                dict_exp = create_expl_tsfresh(concepts, saliencies, args.column_labels)
+
                 if args.explain_all:
-                    update_feature_dict(args.best_features, args.column_labels) 
-                    update_feature_dict(args.worst_features, args.column_labels)
+                    # update_feature_dict(args.best_features, args.column_labels) 
+                    # update_feature_dict(args.worst_features, args.column_labels)
+                    update_feature_dict(args.best_features, dict_exp['best_columns']) 
+                    update_feature_dict(args.worst_features, dict_exp['worst_columns'])
 
                 if sample_id < 10:
-
-                    concepts = concept.cpu().numpy()
-                    saliencies = table_expl.cpu().numpy()[0]
-
-                    # Create tsfresh explanations
-                    dict_exp = create_expl_tsfresh(concepts, saliencies, args.column_labels)
-
                     fig1, fig2 = plot_expl_tsfresh(sample.cpu().numpy(),
                         concepts,
                         output.cpu().numpy(),   
