@@ -144,8 +144,8 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
             # Per sample, count the top 10 features contributing positively 
             # and negatively to a class prediction, add them to the dictionary.
             # The feature name is the key, while the value is the count
-            args.best_features = {}
-            args.worst_features = {}
+            args.best_features = [{}, {}]
+            args.worst_features = [{}, {}]
 
     for i, (concepts, labels, _) in enumerate(loader, start=epoch * iters_per_epoch):
 
@@ -175,17 +175,25 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
     # If global explainability is desired, save best_features and worst_features into a csv
     if split[-4:]=="best" and args.concept == "tsfresh" and args.explain_all:
-        filename_best = f"xai/tsfresh/{split}/best_features_{utils.get_current_time()}.csv"
+
+        utils.write_ts_global_expl(split, "best", args.best_features, 0)
+        utils.write_ts_global_expl(split, "best", args.best_features, 1)
+        utils.write_ts_global_expl(split, "worst", args.worst_features, 0)
+        utils.write_ts_global_expl(split, "worst", args.worst_features, 1)
+
+        """
+        filename_best = f"xai/tsfresh/{split}/best_features_pred0_{utils.get_current_time()}.csv"
         with open(filename_best, "a") as file_best:
-            file_best.write("feature_name; count\n")
-            for f, c in args.best_features.items():
+            file_best.write("feature_name;count\n")
+            for f, c in args.best_features[0].items():
                 file_best.write(f"{f};{c}\n")
 
-        filename_worst = f"xai/tsfresh/{split}/worst_features_{utils.get_current_time()}.csv"
+        filename_worst = f"xai/tsfresh/{split}/worst_features_pred0_{utils.get_current_time()}.csv"
         with open(filename_worst, "a") as file_worst:
-            file_worst.write("feature_name; count\n")
-            for f, c in args.worst_features.items():
+            file_worst.write("feature_name;count\n")
+            for f, c in args.worst_features[0].items():
                 file_worst.write(f"{f};{c}\n")    
+        """
 
     bal_acc = metrics.balanced_accuracy_score(labels_all, preds_all)
 

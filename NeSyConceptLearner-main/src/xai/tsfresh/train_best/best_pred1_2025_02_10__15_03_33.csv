@@ -1,157 +1,96 @@
-feature_name, count
+feature_name;count
 number_peaks__n_10;11
 change_quantiles__f_agg_"var"__isabs_False__qh_0.6__ql_0.2;73
 fft_coefficient__attr_"abs"__coeff_50;14
-fft_coefficient__attr_"real"__coeff_12;32
-fft_coefficient__attr_"abs"__coeff_8;44
-first_location_of_minimum;50
-fft_coefficient__attr_"abs"__coeff_47;36
-quantile__q_0.7;93
+fft_coefficient__attr_"abs"__coeff_47;33
+quantile__q_0.7;68
 fft_coefficient__attr_"real"__coeff_47;12
-fft_coefficient__attr_"imag"__coeff_30;49
+fft_coefficient__attr_"imag"__coeff_30;23
 fft_coefficient__attr_"angle"__coeff_21;66
 fft_coefficient__attr_"angle"__coeff_36;38
 symmetry_looking__r_0.1;46
-change_quantiles__f_agg_"var"__isabs_False__qh_0.8__ql_0.0;39
+change_quantiles__f_agg_"var"__isabs_False__qh_0.8__ql_0.0;27
 fft_coefficient__attr_"imag"__coeff_44;115
 fft_coefficient__attr_"abs"__coeff_70;91
-fft_coefficient__attr_"angle"__coeff_14;87
+fft_coefficient__attr_"angle"__coeff_14;14
 friedrich_coefficients__coeff_0__m_3__r_30;19
 fft_coefficient__attr_"real"__coeff_87;14
 count_above__t_0;9
 change_quantiles__f_agg_"mean"__isabs_True__qh_0.6__ql_0.2;16
-fft_coefficient__attr_"angle"__coeff_44;27
+fft_coefficient__attr_"angle"__coeff_44;26
 fft_coefficient__attr_"angle"__coeff_82;29
 fft_coefficient__attr_"abs"__coeff_75;37
 fft_coefficient__attr_"imag"__coeff_98;34
 fft_coefficient__attr_"imag"__coeff_91;6
 fft_coefficient__attr_"abs"__coeff_16;59
 cwt_coefficients__coeff_0__w_10__widths_(2, 5, 10, 20);13
-fft_coefficient__attr_"real"__coeff_80;136
-fft_coefficient__attr_"real"__coeff_2;75
 first_location_of_maximum;23
 fft_coefficient__attr_"real"__coeff_17;1
-number_crossing_m__m_0;59
-energy_ratio_by_chunks__num_segments_10__segment_focus_8;70
-approximate_entropy__m_2__r_0.9;91
-fft_coefficient__attr_"real"__coeff_55;22
-fft_coefficient__attr_"angle"__coeff_58;6
 fft_coefficient__attr_"angle"__coeff_27;15
-index_mass_quantile__q_0.2;39
-fft_coefficient__attr_"abs"__coeff_36;26
-abs_energy;34
 agg_linear_trend__attr_"stderr"__chunk_len_5__f_agg_"var";5
-fft_coefficient__attr_"real"__coeff_63;5
-fft_coefficient__attr_"abs"__coeff_63;9
-change_quantiles__f_agg_"mean"__isabs_True__qh_0.8__ql_0.6;8
 fft_coefficient__attr_"real"__coeff_86;47
 fft_coefficient__attr_"abs"__coeff_55;3
 fft_coefficient__attr_"angle"__coeff_70;9
-fft_coefficient__attr_"real"__coeff_20;3
-fft_coefficient__attr_"real"__coeff_92;11
-fft_coefficient__attr_"abs"__coeff_25;31
-fft_coefficient__attr_"real"__coeff_4;46
 cwt_coefficients__coeff_9__w_5__widths_(2, 5, 10, 20);1
 cwt_coefficients__coeff_8__w_10__widths_(2, 5, 10, 20);2
 cwt_coefficients__coeff_11__w_5__widths_(2, 5, 10, 20);8
-fft_coefficient__attr_"angle"__coeff_45;3
-cwt_coefficients__coeff_0__w_5__widths_(2, 5, 10, 20);22
-permutation_entropy__dimension_6__tau_1;78
 fft_coefficient__attr_"real"__coeff_40;4
 fft_coefficient__attr_"imag"__coeff_13;1
-change_quantiles__f_agg_"var"__isabs_False__qh_1.0__ql_0.8;56
-index_mass_quantile__q_0.6;6
-cwt_coefficients__coeff_7__w_5__widths_(2, 5, 10, 20);14
-agg_linear_trend__attr_"intercept"__chunk_len_5__f_agg_"max";10
 fft_coefficient__attr_"real"__coeff_33;12
 fft_coefficient__attr_"real"__coeff_22;6
 fft_coefficient__attr_"real"__coeff_91;3
-fft_coefficient__attr_"imag"__coeff_83;5
-fft_coefficient__attr_"real"__coeff_77;12
-fft_coefficient__attr_"imag"__coeff_79;39
-fft_coefficient__attr_"real"__coeff_78;8
+number_crossing_m__m_0;24
+fft_coefficient__attr_"real"__coeff_77;8
 fft_coefficient__attr_"imag"__coeff_90;7
 fft_coefficient__attr_"angle"__coeff_63;49
 change_quantiles__f_agg_"mean"__isabs_False__qh_1.0__ql_0.2;1
-fft_coefficient__attr_"real"__coeff_6;27
 augmented_dickey_fuller__attr_"usedlag"__autolag_"AIC";15
 fft_coefficient__attr_"abs"__coeff_56;2
-longest_strike_below_mean;1
 fft_coefficient__attr_"abs"__coeff_40;6
-benford_correlation;5
-fft_coefficient__attr_"abs"__coeff_9;9
-change_quantiles__f_agg_"var"__isabs_False__qh_0.8__ql_0.6;9
 change_quantiles__f_agg_"mean"__isabs_True__qh_0.4__ql_0.2;13
 fft_coefficient__attr_"angle"__coeff_12;16
 fft_coefficient__attr_"imag"__coeff_32;6
 cwt_coefficients__coeff_3__w_10__widths_(2, 5, 10, 20);1
 index_mass_quantile__q_0.3;12
-change_quantiles__f_agg_"mean"__isabs_True__qh_1.0__ql_0.0;20
 change_quantiles__f_agg_"var"__isabs_True__qh_0.4__ql_0.2;1
 fft_coefficient__attr_"real"__coeff_67;2
 fft_coefficient__attr_"abs"__coeff_22;3
 fft_coefficient__attr_"angle"__coeff_66;4
-approximate_entropy__m_2__r_0.3;12
-fft_coefficient__attr_"abs"__coeff_34;4
-fourier_entropy__bins_3;19
-fft_coefficient__attr_"real"__coeff_57;3
-fft_coefficient__attr_"imag"__coeff_5;22
-lempel_ziv_complexity__bins_3;13
-lempel_ziv_complexity__bins_5;1
-fft_coefficient__attr_"real"__coeff_16;1
 ar_coefficient__coeff_0__k_10;2
-change_quantiles__f_agg_"var"__isabs_False__qh_1.0__ql_0.0;7
-fft_coefficient__attr_"imag"__coeff_25;4
-fft_coefficient__attr_"imag"__coeff_58;3
 autocorrelation__lag_9;5
 variance;4
-fft_coefficient__attr_"imag"__coeff_11;1
 fft_coefficient__attr_"imag"__coeff_70;2
 fft_coefficient__attr_"real"__coeff_18;3
 fft_coefficient__attr_"real"__coeff_59;1
-fft_coefficient__attr_"angle"__coeff_30;4
 fft_coefficient__attr_"real"__coeff_35;3
-cwt_coefficients__coeff_12__w_20__widths_(2, 5, 10, 20);1
-fft_coefficient__attr_"angle"__coeff_86;3
 fft_coefficient__attr_"imag"__coeff_18;6
 cwt_coefficients__coeff_10__w_20__widths_(2, 5, 10, 20);2
-cwt_coefficients__coeff_14__w_10__widths_(2, 5, 10, 20);3
-count_above_mean;1
 fft_coefficient__attr_"angle"__coeff_40;2
 fft_coefficient__attr_"real"__coeff_7;10
 permutation_entropy__dimension_3__tau_1;4
 cwt_coefficients__coeff_2__w_10__widths_(2, 5, 10, 20);4
 fft_coefficient__attr_"angle"__coeff_46;4
-fft_coefficient__attr_"real"__coeff_28;4
 cwt_coefficients__coeff_1__w_10__widths_(2, 5, 10, 20);1
-fft_coefficient__attr_"real"__coeff_82;6
 longest_strike_above_mean;2
+fft_coefficient__attr_"real"__coeff_55;2
 change_quantiles__f_agg_"mean"__isabs_False__qh_1.0__ql_0.6;4
-change_quantiles__f_agg_"var"__isabs_False__qh_1.0__ql_0.6;2
-has_duplicate_min;2
+lempel_ziv_complexity__bins_3;1
 fft_coefficient__attr_"imag"__coeff_27;1
-fft_coefficient__attr_"abs"__coeff_89;3
-fft_coefficient__attr_"abs"__coeff_29;5
+fft_coefficient__attr_"real"__coeff_63;2
 cwt_coefficients__coeff_3__w_5__widths_(2, 5, 10, 20);2
 fft_coefficient__attr_"angle"__coeff_56;3
-fft_coefficient__attr_"real"__coeff_54;2
 number_peaks__n_3;1
-binned_entropy__max_bins_10;2
+binned_entropy__max_bins_10;1
+change_quantiles__f_agg_"mean"__isabs_True__qh_0.8__ql_0.6;5
 quantile__q_0.2;1
-change_quantiles__f_agg_"mean"__isabs_True__qh_0.6__ql_0.4;3
 cwt_coefficients__coeff_0__w_20__widths_(2, 5, 10, 20);1
-absolute_maximum;3
-fft_coefficient__attr_"abs"__coeff_73;1
 cwt_coefficients__coeff_3__w_20__widths_(2, 5, 10, 20);1
-cwt_coefficients__coeff_9__w_10__widths_(2, 5, 10, 20);3
 change_quantiles__f_agg_"mean"__isabs_True__qh_1.0__ql_0.4;2
-fft_coefficient__attr_"real"__coeff_42;1
 fft_coefficient__attr_"angle"__coeff_64;1
 number_peaks__n_50;1
 percentage_of_reoccurring_values_to_all_values;1
 autocorrelation__lag_6;1
-energy_ratio_by_chunks__num_segments_10__segment_focus_0;1
-approximate_entropy__m_2__r_0.7;2
 fft_coefficient__attr_"real"__coeff_15;1
+fft_coefficient__attr_"imag"__coeff_79;1
 fft_coefficient__attr_"real"__coeff_29;1
 agg_linear_trend__attr_"intercept"__chunk_len_5__f_agg_"mean";1

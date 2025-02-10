@@ -205,7 +205,7 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     sorted_hlines = [hlines[i] for i in sorted_indices]
     ax.legend(handles=sorted_hlines, labels=sorted_letters)
 
-def create_expl_tsfresh(concepts, saliencies, column_names, amount = 3):
+def create_expl_tsfresh(concepts, saliencies, column_names, amount = 10):
     """
     Returns a dict with the best/worst columns, concepts and importance
     of the top 10 features.
@@ -470,18 +470,16 @@ def plot_confusion_matrix(y_true, y_pred, classes, normalize=True, title=None,
     plt.savefig(sFigName)
     return ax
 
-
-
-def update_feature_dict(f_dict, features):
+def update_feature_dict(f_dict, features, pred = 0):
     """
-    Takes a dict and updates the counts for all of the given features
+    Takes a feature dict and updates the counts for all of the given features
     """
 
     for f in features:
-        if f_dict.get(f) is not None:
-            f_dict[f] += 1
+        if f_dict[pred].get(f) is not None:
+            f_dict[pred][f] += 1
         else:
-            f_dict[f] = 1
+            f_dict[pred][f] = 1
     pass
 
 
@@ -531,11 +529,11 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 # Create tsfresh explanations
                 dict_exp = create_expl_tsfresh(concepts, saliencies, args.column_labels)
 
-                if args.explain_all:
+                if args.explain_all and true_label == pred_label:
                     # update_feature_dict(args.best_features, args.column_labels) 
                     # update_feature_dict(args.worst_features, args.column_labels)
-                    update_feature_dict(args.best_features, dict_exp['best_columns']) 
-                    update_feature_dict(args.worst_features, dict_exp['worst_columns'])
+                    update_feature_dict(args.best_features, dict_exp['best_columns'], pred_label) 
+                    update_feature_dict(args.worst_features, dict_exp['worst_columns'], pred_label)
 
                 if sample_id < 10:
                     fig1, fig2 = plot_expl_tsfresh(sample.cpu().numpy(),
@@ -546,6 +544,16 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                     
                     writer.add_figure(f"{tagname}_{sample_id}_tsfresh_A", fig1, epoch)
                     writer.add_figure(f"{tagname}_{sample_id}_tsfresh_B", fig2, epoch)
+
+def write_ts_global_expl(split, feature_split, features, pred_class):
+    """
+    Writes the best/worst features into a csv file for a given predicted class (0 or 1)
+    """
+    filename_best = f"xai/tsfresh/{split}/{feature_split}_pred{pred_class}_{get_current_time()}.csv"
+    with open(filename_best, "a") as file_best:
+        file_best.write("feature_name;count\n")
+        for f, c in features[pred_class].items():
+            file_best.write(f"{f};{c}\n")
 
 def save_expls(net, data_loader, tagname, save_path):
     """
