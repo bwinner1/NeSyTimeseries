@@ -1,0 +1,2 @@
+setting,set_heads,hidden_dim,val_acc,test_acc
+slow,4,128,99.73 ± 0.27,96.29 ± 8.38

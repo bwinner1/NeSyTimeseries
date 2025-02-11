@@ -608,16 +608,20 @@ def gridsearch(args):
 
     ### tsfresh
     elif args.concept == "tsfresh":
-        # batch_sizes = (128,)
-        # set_heads = (8, )
-        # hidden_dim = (64, 128)
 
-        # v7
-        settings = ("slow", "mid")
-        set_heads = (4, 8, 16,)
-        hidden_dim = (128, 256, 512)
+        # settings = ("slow", "mid")
+        # set_heads = (4, 8, 16,)
+        # hidden_dim = (128, 256, 512)
+
+
+        ### Warning: settings, batch_size, set_heads and hidden_dim are overwritten here,
+        # so the values from the script are irrelevant for gridsearch.
+        settings = ("slow", )
+        set_heads = (4, )
+        hidden_dim = (256, )
 
         args.batch_size = 128
+
 
         np.random.seed(args.seed)
         # 5 seeds are generated for acc calculation.
@@ -641,7 +645,10 @@ def gridsearch(args):
                 for j in range(len(seeds)):
 
                     print(f"\nTraining {i+1}/{len(iteration_list)}, Seed {j+1}/{len(seeds)}: setting={ts_set}, set_heads={s}, hidden_dim={h}")
-                    set_seed(seeds[j])
+                    # set_seed(seeds[j])
+                    utils.seed_everything(seeds[j])
+
+                    # torch.cuda.empty_cache()
                     acc_test, acc_val = train(args)
                     accs_test.append(acc_test)
                     accs_val.append(acc_val)
@@ -657,6 +664,9 @@ def gridsearch(args):
 
                 file.write(f"{ts_set},{s},{h},{acc_val},{acc_test}\n")
                 file.flush()
+                print(f"seeds: {seeds}")
+                print(f"accs_test: {accs_test}")
+                print(f"accs_val: {accs_val}")
             
 
 def set_seed(seed):
@@ -672,8 +682,9 @@ def set_seed(seed):
 def main():
     args = get_args()
     if args.mode == 'train':
-        torch.cuda.empty_cache()
-        set_seed(args.seed)
+        # torch.cuda.empty_cache()
+        # set_seed(args.seed)
+        utils.seed_everything(args.seed)
         train(args)
     elif args.mode == 'test':
         test(args)
