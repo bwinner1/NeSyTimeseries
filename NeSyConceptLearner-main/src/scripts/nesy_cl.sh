@@ -11,8 +11,8 @@ MODEL="ts-concept-learner-$NUM"
 
 # CUDA_LAUNCH_BLOCKING=1 
 CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl.py --dataset p2s \
---mode gridsearch --num-tries 5 \
---concept tsfresh --ts-setting slow --n-heads 4 --set-transf-hidden 128 \
+--mode train --num-tries 5 \
+--concept vqshape --ts-setting slow --n-heads 4 --set-transf-hidden 128 \
 --load-tsf \
 --epochs 50 --name $MODEL --lr 0.0005 --batch-size 128 --seed 40 --num-workers 0 \
 

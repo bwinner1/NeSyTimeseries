@@ -594,19 +594,26 @@ class vqshapeTransformer:
         # F.interpolate requires dimensions (batch, channels, time/height/width)
         x = x.unsqueeze(1)
         x = F.interpolate(x, 512, mode='linear')  # first interpolate to 512 timesteps
+
+        ### TODO: Plot time series here, just to be sure
         x = x.squeeze(1)
         # x = rearrange(x, 'b c t -> (b c) t')  # transform to univariate time-series
 
         # TODO: Uncomment the old version; currently testing with histogram
         # output = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
 
-        output = self.model(x, mode='tokenize')[0]
-        print("output['token']")
-        print(output['token'])
-        print(output['token'].size())
-        print("output['histogram']")
-        print(output['histogram'][0])
-        print(output['histogram'].size())
+        output = self.model(x, mode='evaluate')
+        print("output")
+        print(output.keys())
+        print(output.items())
+
+        # output = self.model(x, mode='tokenize')[0]
+        # print("output['token'][0]")
+        # print(output['token'][0])
+        # print(output['token'].size())
+        # print("output['histogram'][0]")
+        # print(output['histogram'][0])
+        # print(output['histogram'].size())
         
         histogramm = self.model(x, mode='tokenize')[0]['histogram'] # tokenize with VQShape
         histogramm = histogramm.unsqueeze(1)
