@@ -576,7 +576,10 @@ class tsfreshTransformer:
 class vqshapeTransformer:
     def __init__(self):
         ### Loading Checkpoint
-        checkpoint_path = "VQShape/checkpoints/vqshape_pretrain/uea_dim512_codebook64/VQShape.ckpt"
+        # First: Manually creates, Second: Best with least parameter, Third: Best 
+        checkpoints = ('uea_dim512_codebook64_m', 'uea_dim256_codebook512', 'uea_dim512_codebook64')
+
+        checkpoint_path = f"VQShape/checkpoints/vqshape_pretrain/{checkpoints[2]}/VQShape.ckpt"
         lit_model = LitVQShape.load_from_checkpoint(checkpoint_path, 'cuda')
         self.model = lit_model.model
 
@@ -584,6 +587,10 @@ class vqshapeTransformer:
     # def transform(dataset, y, columns=None, scaler=None, setting="min", filter=True):
         # x = torch.randn(16, 5, 1000).to(device='cuda')  # 16 multivariate time-series, each with 5 channels and 1000 timesteps
         
+        ### TODO: Set mode back to tokenize
+        mode = 'tokenize'
+        # 'tokenize', 'evaluate'
+
         x = torch.tensor(dataset, device='cuda', dtype=torch.float32)
         print("x.size()")
         print(x.size())
@@ -597,37 +604,47 @@ class vqshapeTransformer:
 
         ### TODO: Plot time series here, just to be sure
         x = x.squeeze(1)
-        # x = rearrange(x, 'b c t -> (b c) t')  # transform to univariate time-series
+        # transform to univariate time-series, our ts are already univariate
+        # x = rearrange(x, 'b c t -> (b c) t')  
 
         # TODO: Uncomment the old version; currently testing with histogram
         # output = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
 
-        output = self.model(x, mode='evaluate')
-        print("output")
-        print(output.keys())
-        print(output.items())
+        if mode == 'evaluate':
+            output = self.model(x, mode='evaluate')
+            print("output")
+            print(output[0].keys())
+            print(output[0].items())
 
-        # output = self.model(x, mode='tokenize')[0]
-        # print("output['token'][0]")
-        # print(output['token'][0])
-        # print(output['token'].size())
-        # print("output['histogram'][0]")
-        # print(output['histogram'][0])
-        # print(output['histogram'].size())
+            print(output[1].keys())
+            print(output[1].items())
+
+        elif mode == 'tokenize':
+
+            output = self.model(x, mode='tokenize')[0] # tokenize with VQShape
+            print("output['token'][0]")
+            print(output['token'][0])
+            print(output['token'].size())
+
+            print("output['histogram'][0]")
+            print(output['histogram'][0])
+            print(output['histogram'].size())
         
-        histogramm = self.model(x, mode='tokenize')[0]['histogram'] # tokenize with VQShape
-        histogramm = histogramm.unsqueeze(1)
-        
+            histogramm = output['histogram'] 
+            hist_of_hist = torch.sum(histogramm, 0) 
+            print("hist_of_hist")
+            print(hist_of_hist)
+
+
+            histogramm = histogramm.unsqueeze(1)
+
+            
         """
         print("output_dict")
         print(output_dict)
         print(output_dict.size()) """
 
         # histogram = representations['histogram']
-
-        # Try using token representations:
-        print("token_representations:")
-        print(histogramm.size())
         
         """ 
         print("histogram_representations:")

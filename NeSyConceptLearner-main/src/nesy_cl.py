@@ -668,6 +668,67 @@ def gridsearch(args):
                 print(f"accs_test: {accs_test}")
                 print(f"accs_val: {accs_val}")
             
+def gridsearch_helper(summarizer, params, param_names, iteration_list, args):
+
+    accs_test = []
+    accs_val = []
+    iteration_list = list(product(*params))
+
+    np.random.seed(args.seed)
+    # 5 seeds are generated for acc calculation.
+    seeds = np.random.randint(0, 10000, size=args.num_tries).tolist()
+    print(f"seeds: {seeds}")
+
+    filename = f"gridsearch/{summarizer}/gs_{summarizer}_{utils.get_current_time()}.csv"
+    with open(filename, "a") as file:
+
+        param_names = ",".join(param_names)
+        file.write(f"{param_names},val_acc,test_acc\n")
+        file.flush()
+        for (i, (ts_set, s, h)) in enumerate(iteration_list):
+
+            ### TODO: Add dictionary
+            # args.ts_setting = d['ts_setting']
+
+            ### Sth like this:
+            
+            # attributes = ["ts_setting", "another_setting", "hidden_dim"]  # List of keys to map
+
+            # for attr in attributes:
+            #     setattr(args, attr, d[attr])  # Equivalent to args.ts_setting = d['ts_setting']
+
+
+            args.ts_setting = ts_set
+            args.n_heads = s
+            args.set_transf_hidden = h
+
+            for j in range(len(seeds)):
+
+                print(f"\nTraining {i+1}/{len(iteration_list)}, Seed {j+1}/{len(seeds)}: setting={ts_set}, set_heads={s}, hidden_dim={h}")
+                # set_seed(seeds[j])
+                utils.seed_everything(seeds[j])
+
+                # torch.cuda.empty_cache()
+                acc_test, acc_val = train(args)
+                accs_test.append(acc_test)
+                accs_val.append(acc_val)
+
+            # Calculate the average and the maximum deviation OF the different seeds
+            avg_acc_test = np.mean(accs_test)
+            dev_acc_test = np.max(np.abs(accs_test - avg_acc_test))
+            avg_acc_val = np.mean(accs_val)
+            dev_acc_val = np.max(np.abs(accs_val - avg_acc_val))
+
+            acc_test = f"{100 * avg_acc_test:.2f} ± {100 * dev_acc_test:.2f}"
+            acc_val = f"{100 * avg_acc_val:.2f} ± {100 * dev_acc_val:.2f}"
+
+            file.write(f"{ts_set},{s},{h},{acc_val},{acc_test}\n")
+            file.flush()
+            print(f"seeds: {seeds}")
+            print(f"accs_test: {accs_test}")
+            print(f"accs_val: {accs_val}")
+            
+    pass
 
 def set_seed(seed):
     if seed == -1:  
