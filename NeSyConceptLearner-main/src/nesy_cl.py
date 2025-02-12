@@ -577,8 +577,12 @@ def apply_net(input, net, args):
     return output_cls, output_attr, preds
 
 def gridsearch(args):
-    # Gridsearch
 
+    ### Warning: settings, batch_size, set_heads and hidden_dim are overwritten here,
+    # so the values from the script are irrelevant for gridsearch.
+
+    if args.concept == "sax":
+        """
     test_accuracies = []
     val_accuracies = []
 
@@ -605,10 +609,20 @@ def gridsearch(args):
             #print(f"n_segments: {s}, alphabet_size: {a}, set_heads: {s_h}, test_acc: {100 * test_accuracies[i]:.3f}; val_acc: {100 * val_accuracies[i]:.3f}")
             #print('n_segments: {}, alphabet_size: {}, test_accuracy: {:.3f}, val_accuracy: {:.3f}'
             #     .format(s, a, test_accuracies[i]*100, val_accuracies[i]*100))
+    """
+
+# --concept sax --n-segments 32 --alphabet-size 10 --n-heads 4 --set-transf-hidden 128 \
+        parameter_names = ("n_segments", "alphabet_size", "n_heads", "set_transf_hidden")
+        n_segments = (32, )                
+        alphabet_size = (10, )
+        n_heads = (4, )
+        set_transf_hidden = (128, )
+        params = (n_segments, alphabet_size, n_heads, set_transf_hidden)
+
 
     ### tsfresh
     elif args.concept == "tsfresh":
-
+        """
         # settings = ("slow", "mid")
         # set_heads = (4, 8, 16,)
         # hidden_dim = (128, 256, 512)
@@ -618,7 +632,7 @@ def gridsearch(args):
         # so the values from the script are irrelevant for gridsearch.
         settings = ("slow", )
         set_heads = (4, )
-        hidden_dim = (256, )
+        hidden_dim = (128, )
 
         args.batch_size = 128
 
@@ -632,19 +646,30 @@ def gridsearch(args):
         accs_val = []
         iteration_list = list(product(settings, set_heads, hidden_dim))
 
+        parameter_names = ('ts_setting, n_heads, set_transf_hidden')
+
         filename = f"gridsearch/gridsearch_{utils.get_current_time()}.csv"
         with open(filename, "a") as file:
             file.write("setting,set_heads,hidden_dim,val_acc,test_acc\n")
             file.flush()
-            for (i, (ts_set, s, h)) in enumerate(iteration_list):
+            # for (i, (ts_set, s, h)) in enumerate(iteration_list):
+            for (i, params) in enumerate(iteration_list):
 
-                args.ts_setting = ts_set
-                args.n_heads = s
-                args.set_transf_hidden = h
+                for k in range(len(params)):
+                    setattr(args, parameter_names[k], params[k])
+
+                print(f"args.ts_setting: {args.ts_setting}")
+                print(f"args.n_heads: {args.n_heads}")
+                print(f"args.set_transf_hidden: {args.set_transf_hidden}")
+
+                # args.ts_setting = ts_set
+                # args.n_heads = s
+                # args.set_transf_hidden = h
 
                 for j in range(len(seeds)):
 
-                    print(f"\nTraining {i+1}/{len(iteration_list)}, Seed {j+1}/{len(seeds)}: setting={ts_set}, set_heads={s}, hidden_dim={h}")
+                    print(f"\nTraining {i+1}/{len(iteration_list)}, Seed {j+1}/{len(seeds)}:",
+                          f" setting={params[0]}, set_heads={params[1]}, hidden_dim={params[2]}")
                     # set_seed(seeds[j])
                     utils.seed_everything(seeds[j])
 
@@ -662,30 +687,43 @@ def gridsearch(args):
                 acc_test = f"{100 * avg_acc_test:.2f} ± {100 * dev_acc_test:.2f}"
                 acc_val = f"{100 * avg_acc_val:.2f} ± {100 * dev_acc_val:.2f}"
 
-                file.write(f"{ts_set},{s},{h},{acc_val},{acc_test}\n")
+                # file.write(f"{ts_set},{s},{h},{acc_val},{acc_test}\n")
+                file.write(f"{params[0]},{params[1]},{params[2]},{acc_val},{acc_test}\n")
                 file.flush()
                 print(f"seeds: {seeds}")
                 print(f"accs_test: {accs_test}")
                 print(f"accs_val: {accs_val}")
             
-def gridsearch_helper(summarizer, params, param_names, iteration_list, args):
+            """
+        
+        # Setup of parameters to iterate over.
+        parameter_names = ("ts_setting", "n_heads", "set_transf_hidden")
+        ts_setting = ("slow", )
+        n_heads = (4, )
+        set_transf_hidden = (128, )
+        params = (ts_setting, n_heads, set_transf_hidden)
+
+    gridsearch_helper(parameter_names, params, args)
+
+
+def gridsearch_helper(param_names, param_lists, args):
 
     accs_test = []
     accs_val = []
-    iteration_list = list(product(*params))
+    iteration_list = list(product(*param_lists))
 
     np.random.seed(args.seed)
     # 5 seeds are generated for acc calculation.
     seeds = np.random.randint(0, 10000, size=args.num_tries).tolist()
     print(f"seeds: {seeds}")
 
-    filename = f"gridsearch/{summarizer}/gs_{summarizer}_{utils.get_current_time()}.csv"
+    filename = f"gridsearch/{args.concept}/gs_{args.concept}_{utils.get_current_time()}.csv"
     with open(filename, "a") as file:
 
-        param_names = ",".join(param_names)
-        file.write(f"{param_names},val_acc,test_acc\n")
+        param_names_csv = ",".join(param_names)
+        file.write(f"{param_names_csv},val_acc,test_acc\n")
         file.flush()
-        for (i, (ts_set, s, h)) in enumerate(iteration_list):
+        for (i, params) in enumerate(iteration_list):
 
             ### TODO: Add dictionary
             # args.ts_setting = d['ts_setting']
@@ -697,15 +735,20 @@ def gridsearch_helper(summarizer, params, param_names, iteration_list, args):
             # for attr in attributes:
             #     setattr(args, attr, d[attr])  # Equivalent to args.ts_setting = d['ts_setting']
 
+            for k in range(len(params)):
+                setattr(args, param_names[k], params[k])
 
-            args.ts_setting = ts_set
-            args.n_heads = s
-            args.set_transf_hidden = h
+            # args.ts_setting = ts_set
+            # args.n_heads = s
+            # args.set_transf_hidden = h
 
             for j in range(len(seeds)):
+                params_with_values = [f"{param_names[x]}={params[x]}" for x in range(len(params))]
 
-                print(f"\nTraining {i+1}/{len(iteration_list)}, Seed {j+1}/{len(seeds)}: setting={ts_set}, set_heads={s}, hidden_dim={h}")
-                # set_seed(seeds[j])
+                # print(f"\nTraining {i+1}/{len(iteration_list)}, Seed {j+1}/{len(seeds)}: setting={ts_set}, set_heads={s}, hidden_dim={h}")
+                print(f"\nTraining {i+1}/{len(iteration_list)}, Seed {j+1}/{len(seeds)}:",
+                        f"{', '.join(params_with_values)}")
+                    # set_seed(seeds[j])
                 utils.seed_everything(seeds[j])
 
                 # torch.cuda.empty_cache()
@@ -722,14 +765,13 @@ def gridsearch_helper(summarizer, params, param_names, iteration_list, args):
             acc_test = f"{100 * avg_acc_test:.2f} ± {100 * dev_acc_test:.2f}"
             acc_val = f"{100 * avg_acc_val:.2f} ± {100 * dev_acc_val:.2f}"
 
-            file.write(f"{ts_set},{s},{h},{acc_val},{acc_test}\n")
+            file.write(f"{','.join(str(p) for p in params)},{acc_val},{acc_test}\n")
+            # file.write(f"{ts_set},{s},{h},{acc_val},{acc_test}\n")
             file.flush()
             print(f"seeds: {seeds}")
             print(f"accs_test: {accs_test}")
             print(f"accs_val: {accs_val}")
             
-    pass
-
 def set_seed(seed):
     if seed == -1:  
         seed = 42
