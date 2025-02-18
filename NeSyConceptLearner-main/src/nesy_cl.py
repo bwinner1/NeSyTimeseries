@@ -138,6 +138,10 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
     # global_importance = {}
 
     if args.explain_all:
+
+        args.best_features = [{}, {}]
+        args.worst_features = [{}, {}]
+        """ 
         if args.concept == "sax":
             pass
         elif args.concept == "tsfresh":
@@ -146,7 +150,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
             # The feature name is the key, while the value is the count
             args.best_features = [{}, {}]
             args.worst_features = [{}, {}]
-
+ """
     for i, (concepts, labels, _) in enumerate(loader, start=epoch * iters_per_epoch):
 
         # Move both tensors to correct device
@@ -174,12 +178,12 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
 
     # If global explainability is desired, save best_features and worst_features into a csv
-    if split[-4:]=="best" and args.concept == "tsfresh" and args.explain_all:
+    if (args.explain_all and split[-4:]=="best"):
 
-        utils.write_ts_global_expl(split, "best", args.best_features, 0)
-        utils.write_ts_global_expl(split, "best", args.best_features, 1)
-        utils.write_ts_global_expl(split, "worst", args.worst_features, 0)
-        utils.write_ts_global_expl(split, "worst", args.worst_features, 1)
+        utils.write_global_expl(args.concept, split, "best", args.best_features, 0)
+        utils.write_global_expl(args.concept, split, "best", args.best_features, 1)
+        utils.write_global_expl(args.concept, split, "worst", args.worst_features, 0)
+        utils.write_global_expl(args.concept, split, "worst", args.worst_features, 1)
 
         """
         filename_best = f"xai/tsfresh/{split}/best_features_pred0_{utils.get_current_time()}.csv"

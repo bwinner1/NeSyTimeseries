@@ -571,8 +571,6 @@ class tsfreshTransformer:
         return torch.tensor(X_normalized, dtype=torch.float32).unsqueeze(1), columns, scaler
         # return torch.tensor(X_filtered.to_numpy(), dtype=torch.float32).unsqueeze(1), filtered_columns
 
-
-
 class vqshapeTransformer:
     def __init__(self):
         ### Loading Checkpoint

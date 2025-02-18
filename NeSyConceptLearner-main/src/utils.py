@@ -205,136 +205,53 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     sorted_hlines = [hlines[i] for i in sorted_indices]
     ax.legend(handles=sorted_hlines, labels=sorted_letters)
 
-def create_expl_tsfresh(concepts, saliencies, column_names, amount = 10):
+def create_expls(concept, concepts, saliencies, column_names, amount = 10):
     """
-    Returns a dict with the best/worst columns, concepts and importance
+    Returns a dict with the best/worst columns, concepts and importances
     of the top 10 features.
     """
 
     importance = np.round(saliencies, 2)
+    # print(f"importance: {importance.shape}")
+    # print(f"concepts: {concepts.shape}")
     column_names = np.array(column_names)
-    concepts = np.round(concepts, 2)
+
+    if(concept == "sax"):
+        concepts = np.array(concepts)
+    elif(concept == "tsfresh"):
+        concepts = np.round(concepts, 2)[0]
+        
 
     # Get the indices of the 10 largest values
-    
     worst_indices = np.argsort(importance)[:amount]  # Sort indices, take the first 10 for ascending order
     best_indices = np.argsort(importance)[-amount:][::-1]  # Sort indices, take the last 10, and reverse for descending order
 
     # Retrieve the corresponding values and column names
     best_importance = importance[best_indices]
     best_columns = column_names[best_indices]
-    best_concepts = concepts[0][best_indices]
+    best_concepts = concepts[best_indices]
+    # best_concepts = concepts[0][best_indices]
 
     worst_importance = importance[worst_indices]
     worst_columns = column_names[worst_indices]
-    worst_concepts = concepts[0][worst_indices]
+    worst_concepts = concepts[worst_indices]
+    # worst_concepts = concepts[0][worst_indices]
     dict = {'best_importance' : best_importance,
          'best_columns' : best_columns,
          'best_concepts' : best_concepts,
          'worst_importance' : worst_importance,
          'worst_columns' : worst_columns,
          'worst_concepts' : worst_concepts }
+    # print(f"dict: {dict}")
     return dict
 
-def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label):
-    """Plots a figure of a time series sample.
-      Moreover returns a table with most important featues"""
- 
-    # saliencies = saliencies
-    
-    # Plot samples
-    fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
-    ax1.plot(time_series)
-    # print("saliencies:")
-    # print(saliencies)
-    # print(saliencies.shape) # (1, 462)
-
-
-    # Normalize the importance values for coloring
-    norm = plt.Normalize(vmin=-1, vmax=1)
-    cmap = plt.cm.viridis
-
-    fig2, ax2 = plt.subplots(nrows=2, ncols=1, figsize=(20, 5))
-
-    best_columns = exp['best_columns']
-    best_concepts = exp['best_concepts']
-    best_importance = exp['best_importance']
-    worst_columns = exp['worst_columns']
-    worst_concepts = exp['worst_concepts']
-    worst_importance = exp['worst_importance']
-
-    best_table = ax2[0].table(cellText=np.column_stack((best_columns, best_concepts, best_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
-    worst_table = ax2[1].table(cellText=np.column_stack((worst_columns, worst_concepts, worst_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
-
-    # table.set_fontsize(18)
-    # table.scale(1.5, 1.5)
-    # best_table.auto_set_font_size(False)
-    # best_table.set_fontsize(20) 
-
-    # worst_table.auto_set_font_size(False)
-    # worst_table.set_fontsize(18)
-    # worst_table.scale(1.5, 1.5)
-    
-    # Loop through each cell and apply the color map based on the importance value
-    for (i, j), cell in best_table.get_celld().items():
-        if i == 0:  # Skip header row
-            continue
-        # Color the cells based on importance
-        cell.set_facecolor(cmap(norm(best_importance[i-1])))
-
-    for (i, j), cell in worst_table.get_celld().items():
-        if i == 0:  # Skip header row
-            continue
-        # Color the cells based on importance
-        cell.set_facecolor(cmap(norm(worst_importance[i-1])))
-
-    # Turn off axis and display the table
-    ax2[0].axis('off')
-    ax2[1].axis('off')
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-    sm.set_array([])  # Empty array for the colorbar
-    plt.colorbar(sm, ax=ax2[1], orientation="horizontal", fraction=0.02, pad=0.04)
-    
-    """ 
-    #heatmap = ax2.bar(best_columns, best_values)
-                      #, cmap='viridis', interpolation='none')  
-
-    # print("Best indices:", best_indices)
-    # print("Best values:", best_values)
-    # print("Best columns:", best_columns)
-
-    #for i, (value, col_name) in enumerate(zip(best_values, best_columns)):
-    #        plt.text(i, f"{col_name}\n{value}", 
-    #        ha="center", va="center", color="white", fontsize=8, weight="bold"
-    #    )
-
-
-    # TODO: Continue from here
-    # 1) Vizualize a big heatmap with the saliency values
-    # 2) Show the names and the importance of the top 10 values
-    
-    #heatmap = ax2.imshow(saliencies, cmap='viridis', aspect='auto', vmin=-1.0, vmax=1.0) # TODO: or try out plasma
-    
-    # Add colorbar to show the saliency scale
-    #cbar = plt.colorbar(heatmap, ax=ax2)
-    #cbar.set_label("Importance (Saliency)", fontsize=20)
-
-    # Set tick labels
-    #ax2.set_xticks(np.arange(saliencies.shape[1]))
-    #ax2.set_yticks(np.arange(saliencies.shape[0]))
-    
-    # plot a table with top 5 or top 10 features
- """
-    
-    fig1.suptitle(f"True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
-    fig2.suptitle(f"10 Features with Best / Worst Prediction Contribution; True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
-    return fig1, fig2
 
 def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_label):
     """
     Plots a figure of a time series sample with SAX labels. Marks important segments with a red box.
     """
 
+    # alphabet = list(string.ascii_lowercase[:saliencies.shape[0]])
     alphabet = list(string.ascii_lowercase[:saliencies.shape[1]])
 
     fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
@@ -364,6 +281,8 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
             ax2.text(j, i, f"{value}", ha='center', va='center', color='white')
 
     # Set tick labels
+    # print(f"saliencies: {saliencies.shape}")
+    # print(f"alphabet: {alphabet}")
     ax2.set_xticks(np.arange(saliencies.shape[1]))
     ax2.set_yticks(np.arange(saliencies.shape[0]))
     ax2.set_xticklabels(alphabet)
@@ -376,6 +295,63 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
 
     return fig1, fig2
 
+
+def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label):
+    """Plots a figure of a time series sample.
+      Moreover returns a table with most important featues"""
+ 
+    # saliencies = saliencies
+    
+    # Plot samples
+    fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
+    ax1.plot(time_series)
+    # print("saliencies:")
+    # print(saliencies)
+    # print(saliencies.shape) # (1, 462)
+
+    # Normalize the importance values for coloring
+    norm = plt.Normalize(vmin=-1, vmax=1)
+    cmap = plt.cm.viridis
+
+    fig2, ax2 = plt.subplots(nrows=2, ncols=1, figsize=(20, 5))
+
+    best_columns = exp['best_columns']
+    best_concepts = exp['best_concepts']
+    best_importance = exp['best_importance']
+    worst_columns = exp['worst_columns']
+    worst_concepts = exp['worst_concepts']
+    worst_importance = exp['worst_importance']
+
+    best_table = ax2[0].table(cellText=np.column_stack((best_columns, best_concepts, best_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
+    worst_table = ax2[1].table(cellText=np.column_stack((worst_columns, worst_concepts, worst_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
+    
+    # Loop through each cell and apply the color map based on the importance value
+    for (i, j), cell in best_table.get_celld().items():
+        if i == 0:  # Skip header row
+            continue
+        # Color the cells based on importance
+        cell.set_facecolor(cmap(norm(best_importance[i-1])))
+
+    for (i, j), cell in worst_table.get_celld().items():
+        if i == 0:  # Skip header row
+            continue
+        # Color the cells based on importance
+        cell.set_facecolor(cmap(norm(worst_importance[i-1])))
+
+    # Turn off axis and display the table
+    ax2[0].axis('off')
+    ax2[1].axis('off')
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])  # Empty array for the colorbar
+    plt.colorbar(sm, ax=ax2[1], orientation="horizontal", fraction=0.02, pad=0.04)
+    
+
+    fig1.suptitle(f"True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
+    fig2.suptitle(f"10 Features with Best / Worst Prediction Contribution; True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
+    return fig1, fig2
+
+def plot_expl_vqshape():
+    pass
 
 def create_expl_images(img, pred_attrs, table_expl_attrs, img_expl, true_class_name, pred_class_name, xticklabels):
     """
@@ -476,6 +452,9 @@ def update_feature_dict(f_dict, features, pred = 0):
     """
 
     for f in features:
+        # print(f"f_dict: {f_dict}" )
+        # print(f"f_dict[pred]: {f_dict[pred]}" )
+        # print(f"f_dict[pred].get(f): {f_dict[pred].get(f)}" )
         if f_dict[pred].get(f) is not None:
             f_dict[pred][f] += 1
         else:
@@ -509,7 +488,8 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 samples, concepts, output_attr, table_saliencies, labels, preds
         )):
             
-            if args.concept == "sax":
+            """
+             if args.concept == "sax":
                 fig1, fig2 = plot_expl_SAX(sample.cpu().numpy(),
                                     concept.cpu().numpy(),
                                     output.cpu().numpy(),
@@ -519,37 +499,78 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 writer.add_figure(f"{tagname}_{sample_id}_SAX_A", fig1, epoch)
                 writer.add_figure(f"{tagname}_{sample_id}_SAX_B", fig2, epoch)
                 if sample_id >= 10:
-                    break
+                    break  """
                 
+            # elif args.concept == "sax":
+
+            concepts = concept.cpu().numpy()
+            # print(f"concepts.shape: {concepts.shape}")
+
+            table_expls = table_expl.cpu().numpy()
+            # print(f"table_expls.shape: {table_expls.shape}")
+
+
+            # Create explanations
+            if(args.concept == "sax"):
+                column_labels = [f"seg_{i}" for i in range(concepts.shape[0])]
+                # TODO: Delete the following if no one-hot encoding is used
+                table_expls_squeezed = np.max(table_expls, 1)
+                # concepts = np.expand_dims(concepts, 0)
             elif args.concept == "tsfresh":
+                column_labels = args.column_labels
+                table_expls = table_expls[0]
+                table_expls_squeezed = table_expls
+            else:
+                pass
 
-                concepts = concept.cpu().numpy()
-                saliencies = table_expl.cpu().numpy()[0]
+            if args.explain_all:
+                # Dict is used for global explainability and is always used for tsfresh
+                dict_exp = create_expls(args.concept, concepts, table_expls_squeezed, column_labels)
 
-                # Create tsfresh explanations
-                dict_exp = create_expl_tsfresh(concepts, saliencies, args.column_labels)
+            # Global explainability
+            if args.explain_all and true_label == pred_label:
+                update_feature_dict(args.best_features, dict_exp['best_columns'], pred_label) 
+                update_feature_dict(args.worst_features, dict_exp['worst_columns'], pred_label)
 
-                if args.explain_all and true_label == pred_label:
-                    # update_feature_dict(args.best_features, args.column_labels) 
-                    # update_feature_dict(args.worst_features, args.column_labels)
-                    update_feature_dict(args.best_features, dict_exp['best_columns'], pred_label) 
-                    update_feature_dict(args.worst_features, dict_exp['worst_columns'], pred_label)
-
-                if sample_id < 10:
-                    fig1, fig2 = plot_expl_tsfresh(sample.cpu().numpy(),
+            # Local explainability
+            if sample_id < 10:
+                if (args.concept == "sax"):
+                    fig1, fig2 = plot_expl_SAX(sample.cpu().numpy(),
                         concepts,
                         output.cpu().numpy(),   
+                        table_expls,
+                        true_label, pred_label)
+                    
+                elif (args.concept == "tsfresh"):
+                    fig1, fig2 = plot_expl_tsfresh(sample.cpu().numpy(),
+                        concepts,
+                        output.cpu().numpy(),
                         dict_exp,
                         true_label, pred_label)
                     
-                    writer.add_figure(f"{tagname}_{sample_id}_tsfresh_A", fig1, epoch)
-                    writer.add_figure(f"{tagname}_{sample_id}_tsfresh_B", fig2, epoch)
+                elif (args.concept == "vqshape"):
+                    fig1, fig2 = plot_expl_vqshape(sample.cpu().numpy(),
+                            concepts,
+                            output.cpu().numpy(),
+                            dict_exp,
+                            true_label, pred_label)
+                    
+                
+                # writer.add_figure(f"{tagname}_{sample_id}_tsfresh_A", fig1, epoch)
+                # writer.add_figure(f"{tagname}_{sample_id}_tsfresh_B", fig2, epoch)
+                writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
+                writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_B", fig2, epoch)
 
-def write_ts_global_expl(split, feature_split, features, pred_class):
+def write_global_expl(concept, split, feature_split, features, pred_class):
     """
     Writes the best/worst features into a csv file for a given predicted class (0 or 1)
     """
-    filename_best = f"xai/tsfresh/{split}/{feature_split}_pred{pred_class}_{get_current_time()}.csv"
+    print(f"concept: {concept}")
+    print(f"split: {split}")
+    print(f"feature_split: {feature_split}")
+
+
+    filename_best = f"xai/{concept}/{split}/{feature_split}_pred{pred_class}_{get_current_time()}.csv"
     with open(filename_best, "a") as file_best:
         file_best.write("feature_name;count\n")
         for f, c in features[pred_class].items():
