@@ -16,6 +16,9 @@ from captum.attr import IntegratedGradients
 from nesy_cl import apply_net
 from matplotlib import colormaps
 
+import model
+from vqshape.vqshape_utils import visualize_shapes, plot_code_heatmap
+
 import string
 
 axislabel_fontsize = 8
@@ -205,7 +208,7 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     sorted_hlines = [hlines[i] for i in sorted_indices]
     ax.legend(handles=sorted_hlines, labels=sorted_letters)
 
-def create_expls(concept, concepts, saliencies, column_names, amount = 10):
+def create_expls(concept, concepts, saliencies, column_names, amount = 32):
     """
     Returns a dict with the best/worst columns, concepts and importances
     of the top 10 features.
@@ -300,13 +303,9 @@ def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label
     """Plots a figure of a time series sample.
       Moreover returns a table with most important featues"""
  
-    # saliencies = saliencies
-    
     # Plot samples
     fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
     ax1.plot(time_series)
-    # print("saliencies:")
-    # print(saliencies)
     # print(saliencies.shape) # (1, 462)
 
     # Normalize the importance values for coloring
@@ -350,8 +349,15 @@ def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label
     fig2.suptitle(f"10 Features with Best / Worst Prediction Contribution; True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
     return fig1, fig2
 
-def plot_expl_vqshape():
-    pass
+def plot_expl_vqshape(time_series, concepts, output, exp, true_label, pred_label):
+    # Plot samples
+    fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
+    ax1.plot(time_series)
+
+    output_dict, loss_dict = model.vqshapeTransformer.transform(batch, mode='evaluate')
+
+    return visualize_shapes(output_dict)
+    
 
 def create_expl_images(img, pred_attrs, table_expl_attrs, img_expl, true_class_name, pred_class_name, xticklabels):
     """
@@ -520,8 +526,16 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 column_labels = args.column_labels
                 table_expls = table_expls[0]
                 table_expls_squeezed = table_expls
-            else:
-                pass
+            elif args.concept == "vqshape":
+                if sample_id < 1:
+                    fig1 = plot_expl_vqshape(sample.cpu().numpy(),
+                        concepts,
+                        output.cpu().numpy(),   
+                        table_expls,
+                        true_label, pred_label)
+
+                    writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
+                return
 
             if args.explain_all:
                 # Dict is used for global explainability and is always used for tsfresh
@@ -549,11 +563,12 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                         true_label, pred_label)
                     
                 elif (args.concept == "vqshape"):
-                    fig1, fig2 = plot_expl_vqshape(sample.cpu().numpy(),
-                            concepts,
-                            output.cpu().numpy(),
-                            dict_exp,
-                            true_label, pred_label)
+                    pass
+                    # fig1, fig2 = plot_expl_vqshape(sample.cpu().numpy(),
+                    #         concepts,
+                    #         output.cpu().numpy(),
+                    #         dict_exp,
+                    #         true_label, pred_label)
                     
                 
                 # writer.add_figure(f"{tagname}_{sample_id}_tsfresh_A", fig1, epoch)
@@ -561,13 +576,14 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
                 writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_B", fig2, epoch)
 
+
 def write_global_expl(concept, split, feature_split, features, pred_class):
     """
     Writes the best/worst features into a csv file for a given predicted class (0 or 1)
     """
-    print(f"concept: {concept}")
-    print(f"split: {split}")
-    print(f"feature_split: {feature_split}")
+    # print(f"concept: {concept}")
+    # print(f"split: {split}")
+    # print(f"feature_split: {feature_split}")
 
 
     filename_best = f"xai/{concept}/{split}/{feature_split}_pred{pred_class}_{get_current_time()}.csv"

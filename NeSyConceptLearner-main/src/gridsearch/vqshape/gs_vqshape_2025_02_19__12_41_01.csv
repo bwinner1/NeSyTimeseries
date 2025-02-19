@@ -1,0 +1,2 @@
+n_heads,set_transf_hidden,val_acc,test_acc
+4,128,91.80 ± 3.24,77.62 ± 5.11

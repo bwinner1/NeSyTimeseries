@@ -700,12 +700,21 @@ def gridsearch(args):
             
             """
         
-        # Setup of parameters to iterate over.
+        # Setup of parameters to iterate over.  
         parameter_names = ("ts_setting", "n_heads", "set_transf_hidden")
         ts_setting = ("slow", )
         n_heads = (4, )
         set_transf_hidden = (128, )
         params = (ts_setting, n_heads, set_transf_hidden)
+
+    elif args.concept == "vqshape":
+        parameter_names = ("n_heads", "set_transf_hidden")
+        # parameter_names = ("used_model", "n_heads", "set_transf_hidden")
+        # used_model = (0, )
+        n_heads = (4, )
+        set_transf_hidden = (128, )
+        params = (n_heads, set_transf_hidden)
+        # params = (used_model, n_heads, set_transf_hidden)
 
     gridsearch_helper(parameter_names, params, args)
 

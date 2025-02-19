@@ -572,21 +572,23 @@ class tsfreshTransformer:
         # return torch.tensor(X_filtered.to_numpy(), dtype=torch.float32).unsqueeze(1), filtered_columns
 
 class vqshapeTransformer:
-    def __init__(self):
+    def __init__(self, model_to_use=2):
+        ### TODO: Correct optional parameter. For gridsearch to work correctly, 
+        # args.model_to_use has to be used
+
         ### Loading Checkpoint
         # First: Manually creates, Second: Best with least parameter, Third: Best 
         checkpoints = ('uea_dim512_codebook64_m', 'uea_dim256_codebook512', 'uea_dim512_codebook64')
 
-        checkpoint_path = f"VQShape/checkpoints/vqshape_pretrain/{checkpoints[2]}/VQShape.ckpt"
+        checkpoint_path = f"VQShape/checkpoints/vqshape_pretrain/{checkpoints[model_to_use]}/VQShape.ckpt"
         lit_model = LitVQShape.load_from_checkpoint(checkpoint_path, 'cuda')
         self.model = lit_model.model
 
-    def transform(self, dataset):
+    def transform(self, dataset, mode = "tokenize"):
     # def transform(dataset, y, columns=None, scaler=None, setting="min", filter=True):
         # x = torch.randn(16, 5, 1000).to(device='cuda')  # 16 multivariate time-series, each with 5 channels and 1000 timesteps
         
-        ### TODO: Set mode back to tokenize
-        mode = 'tokenize'
+        # mode = 'tokenize'
         # 'tokenize', 'evaluate'
 
         x = torch.tensor(dataset, device='cuda', dtype=torch.float32)
@@ -609,13 +611,14 @@ class vqshapeTransformer:
         # output = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
 
         if mode == 'evaluate':
-            output = self.model(x, mode='evaluate')
+            output_dict, loss_dict = self.model(x, mode='evaluate')
             print("output")
-            print(output[0].keys())
-            print(output[0].items())
+            print(output_dict.keys())
+            print(output_dict.items())
 
-            print(output[1].keys())
-            print(output[1].items())
+            print(loss_dict.keys())
+            print(loss_dict.items())
+            return output_dict, loss_dict
 
         elif mode == 'tokenize':
 
@@ -633,24 +636,10 @@ class vqshapeTransformer:
             print("hist_of_hist")
             print(hist_of_hist)
 
-
             histogramm = histogramm.unsqueeze(1)
+            return histogramm
 
-            
-        """
-        print("output_dict")
-        print(output_dict)
-        print(output_dict.size()) """
-
-        # histogram = representations['histogram']
-        
-        """ 
-        print("histogram_representations:")
-        print(histogram_representations)
-        print(histogram_representations.size())
- """
-        return histogramm
-
+    
 
 
 ############
