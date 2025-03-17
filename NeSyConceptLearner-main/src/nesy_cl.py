@@ -178,6 +178,9 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
             saliencies = torch.max(saliencies, dim=1).values
 
+            saliencies = torch.mul(saliencies, masks)
+            saliencies = torch.mul(saliencies, saliencies)
+            
             print("saliencies")
             print(saliencies)
 
