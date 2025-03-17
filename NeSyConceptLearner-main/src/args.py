@@ -79,7 +79,7 @@ def get_args():
                         help='alphabet size for sax')
     parser.add_argument(
         "--xil", action="store_true",
-          help="Load previous tsfresh data, don't run tsfresh"
+          help="Enable xil"
     )
 
     # tsfresh params

@@ -76,7 +76,10 @@ def run_test_final(net, loader, criterion, writer, args, datasplit):
     labels_all = []
     with torch.no_grad():
 
-        for i, (concepts, labels, _) in enumerate(tqdm(loader)):
+        for i, loaded_data in enumerate(tqdm(loader)):
+            concepts = loaded_data[0]
+            labels = loaded_data[1]
+
             # input is either a set or an image
             # imgs, target_set, img_class_ids, img_ids, _, table_expl = map(lambda x: x.cuda(), sample)
             # img_class_ids = img_class_ids.long()
@@ -151,7 +154,14 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
             args.best_features = [{}, {}]
             args.worst_features = [{}, {}]
  """
-    for i, (concepts, labels, _) in enumerate(loader, start=epoch * iters_per_epoch):
+    for i, loaded_data in enumerate(loader, start=epoch * iters_per_epoch): 
+
+        concepts = loaded_data[0]
+        labels = loaded_data[1]
+        ts = loaded_data[2]
+    
+        if args.xil:
+            masks = loaded_data[3]
 
         # Move both tensors to correct device
         concepts = concepts.to(args.device)
@@ -160,7 +170,27 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         # Network usage
         output_cls, output_attr, preds = apply_net(concepts, net, args)
 
-        loss = criterion(output_cls, labels)
+        if args.xil:
+            saliencies = utils.generate_intgrad_captum_table(net.set_cls, output_attr, preds)
+            # print("saliencies")
+            # print(saliencies)
+            # print(saliencies.size())
+
+            saliencies = torch.max(saliencies, dim=1).values
+
+            print("saliencies")
+            print(saliencies)
+
+            rr_loss = torch.sum(saliencies, dim=1)
+
+            print("rr_loss")
+            print(rr_loss)
+
+            loss = criterion(output_cls, labels) + rr_loss
+            print("loss")
+            print(loss)
+        else:
+            loss = criterion(output_cls, labels)
 
         # Outer optim step
         if train:
@@ -227,19 +257,24 @@ def train(args):
 
         # Extracting the time series data from the train and test dataset
         ts_train = np.array(train_dataset['train']['dowel_deep_drawing_ow'])
-        ts_train_speeds = np.array(train_dataset['train']['speed'])
+        # ts_train_speeds = np.array(train_dataset['train']['speed'])
         
         # Number of samples that goes into the train dataset; the rest goes into the validation dataset
         training_samples = int(ts_train.shape[0] * 0.8)
         ts_val = ts_train[training_samples :]
+        
         ts_train = ts_train[: training_samples]
-
         ts_test = np.array(train_dataset['test']['dowel_deep_drawing_ow'])
 
-        # TODO: Add Shuffling to train and val datasets
+
         labels_train = torch.tensor(train_dataset['train']['label'][:training_samples])
         labels_val = torch.tensor(train_dataset['train']['label'][training_samples:])
         labels_test = torch.tensor(train_dataset['test']['label'])
+
+        masks_train = torch.tensor(train_dataset['train']['mask'][:training_samples])
+        masks_val = torch.tensor(train_dataset['train']['mask'][training_samples:])
+        masks_test = torch.tensor(train_dataset['test']['mask'])
+        
 
     else:
         print("Wrong dataset specifier")
@@ -251,6 +286,7 @@ def train(args):
         concepts_train = sax.transform(ts_train)
         concepts_val = sax.transform(ts_val)
         concepts_test = sax.transform(ts_test)
+
 
     elif args.concept == "tsfresh":        
         file = "pretrain"
@@ -344,13 +380,22 @@ def train(args):
     #p2s_dataset = P2S_Dataset(concepts, labels)
 
     # Creating a Dataset using Tensors
-    train_dataset = TensorDataset(concepts_train, labels_train, ts_train)
+    train_input = [concepts_train, labels_train, ts_train]
+    val_input = [concepts_val, labels_val, ts_val]
+    test_input = [concepts_test, labels_test, ts_test]
+    
+    if args.xil:
+        train_input.append(masks_train)
+        val_input.append(masks_val)
+        test_input.append(masks_test)
+
+    train_dataset = TensorDataset(*train_input)
     train_loader = DataLoader(train_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=True)
 
-    val_dataset = TensorDataset(concepts_val, labels_val, ts_val)
+    val_dataset = TensorDataset(*val_input)
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
-    test_dataset = TensorDataset(concepts_test, labels_test, ts_test)
+    test_dataset = TensorDataset(*test_input)
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size, num_workers=args.num_workers, shuffle=False)
 
     # In general, the SetTransformer requires the following shape:

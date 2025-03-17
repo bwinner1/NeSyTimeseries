@@ -476,7 +476,14 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
 
     net.eval()
 
-    for i, (concepts, labels, samples) in enumerate(data_loader):
+    for i, loaded_data in enumerate(data_loader):
+
+        concepts = loaded_data[0]
+        labels = loaded_data[1]
+        samples = loaded_data[2]
+        
+        if args.xil:
+            masks = loaded_data[3]
 
         concepts = concepts.cuda()
         labels = labels.cuda()
