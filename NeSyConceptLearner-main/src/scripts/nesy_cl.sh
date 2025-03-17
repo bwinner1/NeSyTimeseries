@@ -14,8 +14,7 @@ CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl.py --dataset p2s \
 --mode gridsearch --num-tries 5 \
 --concept sax --n-segments 512 --alphabet-size 32 --n-heads 4 --set-transf-hidden 128 \
 --epochs 50 --name $MODEL --lr 0.0001 --batch-size 64 --seed 2 --num-workers 0 \
-# --explain \
-# --xil
+# --explain --xil
 
 # Added one zero 
 

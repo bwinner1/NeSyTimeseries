@@ -77,6 +77,10 @@ def get_args():
                         help='number of sax segments')
     parser.add_argument('--alphabet-size', default=4, type=int,
                         help='alphabet size for sax')
+    parser.add_argument(
+        "--xil", action="store_true",
+          help="Load previous tsfresh data, don't run tsfresh"
+    )
 
     # tsfresh params
     parser.add_argument(
