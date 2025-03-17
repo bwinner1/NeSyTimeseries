@@ -586,42 +586,53 @@ def gridsearch(args):
     # so the values from the script are irrelevant for gridsearch.
 
     if args.concept == "sax":
+    
         """
-    test_accuracies = []
-    val_accuracies = []
+        test_accuracies = []
+        val_accuracies = []
 
-    ### SAX
-    if args.concept == "sax":
-        segments = (128, 256, 512, 1024)
-        alphabet_sizes = (4, 10, 16, 32)
-        set_heads = (4,)
+        ### SAX
+        if args.concept == "sax":
+            segments = (128, 256, 512, 1024)
+            alphabet_sizes = (4, 10, 16, 32)
+            set_heads = (4,)
 
-        iteration_list = product(segments, alphabet_sizes, set_heads)
+            iteration_list = product(segments, alphabet_sizes, set_heads)
 
-        for (s, a, s_h) in iteration_list:
-            args.n_segments = s
-            args.alphabet_size = a
-            args.set_heads = s_h
+            for (s, a, s_h) in iteration_list:
+                args.n_segments = s
+                args.alphabet_size = a
+                args.set_heads = s_h
 
-            acc_test, acc_val = train(args)
-            test_accuracies.append(acc_test)
-            val_accuracies.append(acc_val)
+                acc_test, acc_val = train(args)
+                test_accuracies.append(acc_test)
+                val_accuracies.append(acc_val)
 
-        print("n_segments,alphabet_size,set_heads,test_acc,val_acc")
-        for (i, (s, a, s_h)) in enumerate(iteration_list):
-            print(f"{s},{a},{s_h},{100 * test_accuracies[i]:.3f},{100 * val_accuracies[i]:.3f}")
-            #print(f"n_segments: {s}, alphabet_size: {a}, set_heads: {s_h}, test_acc: {100 * test_accuracies[i]:.3f}; val_acc: {100 * val_accuracies[i]:.3f}")
-            #print('n_segments: {}, alphabet_size: {}, test_accuracy: {:.3f}, val_accuracy: {:.3f}'
-            #     .format(s, a, test_accuracies[i]*100, val_accuracies[i]*100))
-    """
+            print("n_segments,alphabet_size,set_heads,test_acc,val_acc")
+            for (i, (s, a, s_h)) in enumerate(iteration_list):
+                print(f"{s},{a},{s_h},{100 * test_accuracies[i]:.3f},{100 * val_accuracies[i]:.3f}")
+                #print(f"n_segments: {s}, alphabet_size: {a}, set_heads: {s_h}, test_acc: {100 * test_accuracies[i]:.3f}; val_acc: {100 * val_accuracies[i]:.3f}")
+                #print('n_segments: {}, alphabet_size: {}, test_accuracy: {:.3f}, val_accuracy: {:.3f}'
+                #     .format(s, a, test_accuracies[i]*100, val_accuracies[i]*100))
+        """
 
 # --concept sax --n-segments 32 --alphabet-size 10 --n-heads 4 --set-transf-hidden 128 \
-        parameter_names = ("n_segments", "alphabet_size", "n_heads", "set_transf_hidden")
-        n_segments = (32, )                
-        alphabet_size = (10, )
+        parameter_names = ("n_segments", "alphabet_size", "n_heads", "set_transf_hidden", "lr")
+        
+        # n_segments = (4, 8, 16, 32)
+        n_segments = (64, 128, 256, 512)
+                       
+        # n_segments = (32, 64, 128, 256, 512)                
+        # n_segments = (32, )            
+            
+        alphabet_size = (4, 8, 16, 32, 64)
+        # alphabet_size = (8,10,12,14,16)
+        # alphabet_size = (64, )
+
         n_heads = (4, )
         set_transf_hidden = (128, )
-        params = (n_segments, alphabet_size, n_heads, set_transf_hidden)
+        lr = (0.0001,)
+        params = (n_segments, alphabet_size, n_heads, set_transf_hidden, lr)
 
 
     ### tsfresh
@@ -721,8 +732,7 @@ def gridsearch(args):
 
 def gridsearch_helper(param_names, param_lists, args):
 
-    accs_test = []
-    accs_val = []
+
     iteration_list = list(product(*param_lists))
 
     np.random.seed(args.seed)
@@ -737,6 +747,8 @@ def gridsearch_helper(param_names, param_lists, args):
         file.write(f"{param_names_csv},val_acc,test_acc\n")
         file.flush()
         for (i, params) in enumerate(iteration_list):
+            accs_test = []
+            accs_val = []
 
             ### TODO: Add dictionary
             # args.ts_setting = d['ts_setting']
@@ -768,15 +780,28 @@ def gridsearch_helper(param_names, param_lists, args):
                 acc_test, acc_val = train(args)
                 accs_test.append(acc_test)
                 accs_val.append(acc_val)
-
-            # Calculate the average and the maximum deviation OF the different seeds
+            """ 
+            # Calculate the average and the maximum deviation of the different seeds
             avg_acc_test = np.mean(accs_test)
             dev_acc_test = np.max(np.abs(accs_test - avg_acc_test))
             avg_acc_val = np.mean(accs_val)
-            dev_acc_val = np.max(np.abs(accs_val - avg_acc_val))
+            dev_acc_val = np.max(np.abs(accs_val - avg_acc_val)) """
 
-            acc_test = f"{100 * avg_acc_test:.2f} ± {100 * dev_acc_test:.2f}"
-            acc_val = f"{100 * avg_acc_val:.2f} ± {100 * dev_acc_val:.2f}"
+
+            print("accs_test")
+            print(accs_test)
+            print(len(accs_test))
+            print("accs_val")
+            print(accs_val)
+            print(len(accs_val))
+            # Calculate the average and the standard deviation of the different seeds
+            avg_acc_test = np.mean(accs_test)
+            stddiv_acc_test = np.std(accs_test)
+            avg_acc_val = np.mean(accs_val)
+            stddiv_acc_val = np.std(accs_val)
+
+            acc_test = f"{100 * avg_acc_test:.2f} ± {100 * stddiv_acc_test:.2f}"
+            acc_val = f"{100 * avg_acc_val:.2f} ± {100 * stddiv_acc_val:.2f}"
 
             file.write(f"{','.join(str(p) for p in params)},{acc_val},{acc_test}\n")
             # file.write(f"{ts_set},{s},{h},{acc_val},{acc_test}\n")
