@@ -80,6 +80,11 @@ def run_test_final(net, loader, criterion, writer, args, datasplit):
             concepts = loaded_data[0]
             labels = loaded_data[1]
 
+            if args.xil:
+                masks = loaded_data[3].float().to(args.device)
+
+
+
             # input is either a set or an image
             # imgs, target_set, img_class_ids, img_ids, _, table_expl = map(lambda x: x.cuda(), sample)
             # img_class_ids = img_class_ids.long()
@@ -97,6 +102,12 @@ def run_test_final(net, loader, criterion, writer, args, datasplit):
 
             running_corrects = running_corrects + torch.sum(preds == labels)
             loss = criterion(output_cls, labels)
+
+            if args.xil:
+                saliencies = utils.generate_intgrad_captum_table(net.set_cls, output_attr, preds)
+                loss = calc_xil_loss(loss, masks, saliencies, args.xil_weight)
+
+
             running_loss += loss.item()
             preds = preds.cpu().numpy()
             target = labels.cpu().numpy()
@@ -161,7 +172,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         ts = loaded_data[2]
     
         if args.xil:
-            masks = loaded_data[3]
+            masks = loaded_data[3].float().to(args.device)
 
         # Move both tensors to correct device
         concepts = concepts.to(args.device)
@@ -170,30 +181,12 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         # Network usage
         output_cls, output_attr, preds = apply_net(concepts, net, args)
 
+        loss = criterion(output_cls, labels)
+
         if args.xil:
             saliencies = utils.generate_intgrad_captum_table(net.set_cls, output_attr, preds)
-            # print("saliencies")
-            # print(saliencies)
-            # print(saliencies.size())
+            loss = calc_xil_loss(loss, masks, saliencies, args.xil_weight)
 
-            saliencies = torch.max(saliencies, dim=1).values
-
-            saliencies = torch.mul(saliencies, masks)
-            saliencies = torch.mul(saliencies, saliencies)
-            
-            print("saliencies")
-            print(saliencies)
-
-            rr_loss = torch.sum(saliencies, dim=1)
-
-            print("rr_loss")
-            print(rr_loss)
-
-            loss = criterion(output_cls, labels) + rr_loss
-            print("loss")
-            print(loss)
-        else:
-            loss = criterion(output_cls, labels)
 
         # Outer optim step
         if train:
@@ -256,7 +249,7 @@ def train(args):
     if args.dataset == "p2s":
 
         ### TODO: Change back to 'Normal'
-        train_dataset = load_dataset('AIML-TUDA/P2S', 'Normal', download_mode='reuse_dataset_if_exists')
+        train_dataset = load_dataset('AIML-TUDA/P2S', 'Decoy', download_mode='reuse_dataset_if_exists')
 
         # Extracting the time series data from the train and test dataset
         ts_train = np.array(train_dataset['train']['dowel_deep_drawing_ow'])
@@ -628,6 +621,22 @@ def apply_net(input, net, args):
     
     return output_cls, output_attr, preds
 
+def calc_xil_loss(ra_loss, masks, saliencies, rr_weight):
+
+    saliencies = torch.max(saliencies, dim=2).values
+
+    masks = masks.unsqueeze(1)
+    masks = nn.functional.interpolate(masks, saliencies.size(1), mode='linear')  # first interpolate to seg_size timesteps
+    masks = masks.squeeze(1)
+
+    saliencies = torch.mul(saliencies, masks)
+    saliencies = torch.mul(saliencies, saliencies)
+    rr_loss = torch.sum(saliencies)
+
+    loss =  ra_loss + rr_weight * rr_loss
+
+    return loss
+
 def gridsearch(args):
 
     ### Warning: settings, batch_size, set_heads and hidden_dim are overwritten here,
@@ -665,22 +674,31 @@ def gridsearch(args):
         """
 
 # --concept sax --n-segments 32 --alphabet-size 10 --n-heads 4 --set-transf-hidden 128 \
-        parameter_names = ("n_segments", "alphabet_size", "n_heads", "set_transf_hidden", "lr")
+        parameter_names = ("n_segments", "alphabet_size", "n_heads", "set_transf_hidden", "xil_weight", "lr")
         
-        # n_segments = (4, 8, 16, 32)
-        n_segments = (64, 128, 256, 512)
-                       
-        # n_segments = (32, 64, 128, 256, 512)                
-        # n_segments = (32, )            
-            
-        alphabet_size = (4, 8, 16, 32, 64)
-        # alphabet_size = (8,10,12,14,16)
-        # alphabet_size = (64, )
+        # n_segments = (64, 128, 256, 512)
+        # n_segments = (32, 64, 128, 256)            
+        n_segments = (64, )
+
+        # alphabet_size = (4, 8, 16, 32, 64)
+        alphabet_size = (4, )
 
         n_heads = (4, )
         set_transf_hidden = (128, )
-        lr = (0.0001,)
-        params = (n_segments, alphabet_size, n_heads, set_transf_hidden, lr)
+
+        # xil_weight = (1000, 100, 10, 1, 0.1, 0.01)
+
+        # xil_weight = (1000, 100)
+        # xil_weight = (10, 1 )
+        # xil_weight = (0.1, 0.01)
+
+        # xil_weight = (0.1, 1, 10, 100)
+        xil_weight = (0.1, )
+
+        # lr = (0.000001, 0.00001, 0.0001, 0.001, 0.01)
+        # lr = (0.000001, 0.00001)
+        lr = (0.0001, )
+        params = (n_segments, alphabet_size, n_heads, set_transf_hidden, xil_weight, lr)
 
 
     ### tsfresh

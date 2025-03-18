@@ -81,6 +81,8 @@ def get_args():
         "--xil", action="store_true",
           help="Enable xil"
     )
+    parser.add_argument('--xil-weight', default=1, type=int,
+                    help='Factor to multiply rr_loss with')
 
     # tsfresh params
     parser.add_argument(
