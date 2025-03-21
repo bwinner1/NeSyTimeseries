@@ -1,0 +1,2 @@
+ts_setting,n_heads,set_transf_hidden,filter_tsf,normalize_tsf,val_acc,test_acc
+slow,4,128,True,True,99.82 ± 0.22,92.71 ± 6.75

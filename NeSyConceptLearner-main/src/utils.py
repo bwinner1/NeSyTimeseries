@@ -73,30 +73,10 @@ def generate_intgrad_captum_table(net, input, labels):
     labels = labels.to("cuda")
     explainer = IntegratedGradients(net)
     saliencies = explainer.attribute(input, target=labels)
+    
     # remove negative attributions
-    # TODO: Maybe don't though, for using non-existance of a letter (SAX) for prediction
     #saliencies[saliencies < 0] = 0.
     
-    """
-    print("input")
-    print(input)
-
-    print("labels")
-    print(labels)
-    
-    # TODO: maybe delete normalization
-    # normalize each saliency map by its max
-    for k, sal in enumerate(saliencies):
-        saliencies[k] = sal/torch.max(sal)
-
-    returnValue = norm_saliencies(saliencies)
-
-    print("returnValue")
-    print(returnValue)
-    #print("saliencies")
-    #print(saliencies)
-    #print(saliencies.size())
-    """
     return saliencies
 
 
@@ -176,7 +156,10 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     increment = int(time_steps / concepts.shape[0])
 
     num_colors = np.max(concepts)
-    assert num_colors <= 19, "Alphabet size can't be higher than 10"
+    # assert num_colors <= 19, "Alphabet size can't be higher than 10"
+    if num_colors > 19:
+        num_colors %= 20
+
     if(num_colors <= 8):
         get_color = colormaps['Set1']
     elif(num_colors <= 10):
@@ -194,7 +177,7 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     for seg_letter_i in concepts: 
         i_end = i_start + increment # exclusive end
         seg_mean = np.mean(time_series[i_start : i_end])
-        letter = alphabet[seg_letter_i]
+        letter = alphabet[seg_letter_i] # TODO: Fix error for case if alphabet_size is big (not 10, but 32)
         color = get_color(seg_letter_i)
         hline = ax.hlines(y=seg_mean, xmin=i_start, xmax=i_end-1, color=color, 
                   linewidth=3, label=letter)  # Horizontal line
@@ -255,7 +238,8 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
     """
 
     # alphabet = list(string.ascii_lowercase[:saliencies.shape[0]])
-    alphabet = list(string.ascii_lowercase[:saliencies.shape[1]])
+    alphabet = "".join((string.ascii_letters, string.digits))
+    alphabet = list(alphabet[:saliencies.shape[1]])
 
     fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
     fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))

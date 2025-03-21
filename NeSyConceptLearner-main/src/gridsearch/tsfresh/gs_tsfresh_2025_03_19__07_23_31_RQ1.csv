@@ -1,0 +1,13 @@
+ts_setting,n_heads,set_transf_hidden,filter_tsf,normalize_tsf,val_acc,test_acc
+fast,4,128,True,True,91.80 ± 0.66,88.10 ± 0.23
+fast,4,128,True,False,91.80 ± 0.66,88.10 ± 0.23
+fast,4,128,False,True,96.67 ± 0.22,96.86 ± 0.28
+fast,4,128,False,False,96.67 ± 0.22,96.86 ± 0.28
+mid,4,128,True,True,99.82 ± 0.22,91.43 ± 3.38
+mid,4,128,True,False,99.82 ± 0.22,91.43 ± 3.38
+mid,4,128,False,True,99.73 ± 0.22,97.82 ± 0.81
+mid,4,128,False,False,99.73 ± 0.22,97.82 ± 0.81
+slow,4,128,True,True,99.82 ± 0.22,92.71 ± 6.75
+slow,4,128,True,False,99.82 ± 0.22,92.71 ± 6.75
+slow,4,128,False,True,99.91 ± 0.18,95.27 ± 5.62
+slow,4,128,False,False,99.91 ± 0.18,95.27 ± 5.62

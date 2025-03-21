@@ -38,6 +38,10 @@ def get_args():
         choices=["p2s"],
     )
     parser.add_argument(
+        "--p2s-decoy", action="store_true",
+          help="Use the decoy mode of the P2S dataset"
+    )
+    parser.add_argument(
         "--no-cuda",
         action="store_true",
         help="Run on CPU instead of GPU (not recommended)",

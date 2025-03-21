@@ -579,6 +579,10 @@ class vqshapeTransformer:
         ### Loading Checkpoint
         # First: Manually creates, Second: Best with least parameter, Third: Best 
         checkpoints = ('uea_dim512_codebook64_m', 'uea_dim256_codebook512', 'uea_dim512_codebook64')
+        
+        # dim = 0
+        # cb = 0
+        # checkpoint = f"uea_dim{dim}_codebook{cb}_m"
 
         checkpoint_path = f"VQShape/checkpoints/vqshape_pretrain/{checkpoints[model_to_use]}/VQShape.ckpt"
         lit_model = LitVQShape.load_from_checkpoint(checkpoint_path, 'cuda')

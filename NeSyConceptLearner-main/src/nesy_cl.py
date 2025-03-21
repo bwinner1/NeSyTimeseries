@@ -248,8 +248,9 @@ def train(args):
 
     if args.dataset == "p2s":
 
-        ### TODO: Change back to 'Normal'
-        train_dataset = load_dataset('AIML-TUDA/P2S', 'Decoy', download_mode='reuse_dataset_if_exists')
+        # 'Normal' | 'Decoy'
+        mode = 'Decoy' if args.p2s_decoy else 'Normal'
+        train_dataset = load_dataset('AIML-TUDA/P2S', mode, download_mode='reuse_dataset_if_exists')
 
         # Extracting the time series data from the train and test dataset
         ts_train = np.array(train_dataset['train']['dowel_deep_drawing_ow'])
@@ -623,15 +624,28 @@ def apply_net(input, net, args):
 
 def calc_xil_loss(ra_loss, masks, saliencies, rr_weight):
 
-    saliencies = torch.max(saliencies, dim=2).values
+    # saliencies = torch.max(saliencies, dim=1).values
 
     masks = masks.unsqueeze(1)
     masks = nn.functional.interpolate(masks, saliencies.size(1), mode='linear')  # first interpolate to seg_size timesteps
     masks = masks.squeeze(1)
+    masks = masks.unsqueeze(2)
+
+    # print("masks")
+    # print(masks.size())
+    # print("saliencies")
+    # print(saliencies.size())
 
     saliencies = torch.mul(saliencies, masks)
+
     saliencies = torch.mul(saliencies, saliencies)
+    # print("saliencies")
+    # print(saliencies)
+
     rr_loss = torch.sum(saliencies)
+    # print("rr_loss")
+    # print(rr_loss)
+
 
     loss =  ra_loss + rr_weight * rr_loss
 
@@ -639,159 +653,98 @@ def calc_xil_loss(ra_loss, masks, saliencies, rr_weight):
 
 def gridsearch(args):
 
-    ### Warning: settings, batch_size, set_heads and hidden_dim are overwritten here,
-    # so the values from the script are irrelevant for gridsearch.
+    ### WARNING ###
+    # Every value that is used here, overwrites the given value in the script.
+    # If you want to add a parameter to iterate through, do the following steps
+    # 0) Below, only use the exact same parameter names as you would in the script 
+    # 1) Define it as a tuple, having at least one value (e.g.: (4, ) )
+    # 2) Include your parameter in params
+    # 3) Add the parameter into parameter_names
 
     if args.concept == "sax":
-    
+            
         """
-        test_accuracies = []
-        val_accuracies = []
-
-        ### SAX
-        if args.concept == "sax":
-            segments = (128, 256, 512, 1024)
-            alphabet_sizes = (4, 10, 16, 32)
-            set_heads = (4,)
-
-            iteration_list = product(segments, alphabet_sizes, set_heads)
-
-            for (s, a, s_h) in iteration_list:
-                args.n_segments = s
-                args.alphabet_size = a
-                args.set_heads = s_h
-
-                acc_test, acc_val = train(args)
-                test_accuracies.append(acc_test)
-                val_accuracies.append(acc_val)
-
-            print("n_segments,alphabet_size,set_heads,test_acc,val_acc")
-            for (i, (s, a, s_h)) in enumerate(iteration_list):
-                print(f"{s},{a},{s_h},{100 * test_accuracies[i]:.3f},{100 * val_accuracies[i]:.3f}")
-                #print(f"n_segments: {s}, alphabet_size: {a}, set_heads: {s_h}, test_acc: {100 * test_accuracies[i]:.3f}; val_acc: {100 * val_accuracies[i]:.3f}")
-                #print('n_segments: {}, alphabet_size: {}, test_accuracy: {:.3f}, val_accuracy: {:.3f}'
-                #     .format(s, a, test_accuracies[i]*100, val_accuracies[i]*100))
-        """
-
-# --concept sax --n-segments 32 --alphabet-size 10 --n-heads 4 --set-transf-hidden 128 \
-        parameter_names = ("n_segments", "alphabet_size", "n_heads", "set_transf_hidden", "xil_weight", "lr")
-        
         # n_segments = (64, 128, 256, 512)
-        # n_segments = (32, 64, 128, 256)            
-        n_segments = (64, )
+        # n_segments = (32, 64, 128, 256)   
+                 
+        # n_segments = (16, 32, 64, 128, 256 )
+        # n_segments = (64, )
 
         # alphabet_size = (4, 8, 16, 32, 64)
-        alphabet_size = (4, )
+        # alphabet_size = (4, 8, 16, 32, 64)
+        
+        # xil_weight = (0.000001, 0.00001, 0.0001, )
+        # xil_weight = (0.0001, )
+        # xil_weight = (0.001, 0.01, 0.1)
+        # xil_weight = (0.001, 0.01, 0.1, 1, 10)
+        # xil_weight = (0.1, 1, 10, 100)
+        # xil_weight = (0.05, 0.1, 0.5, )
 
+        # lr = (0.00001, 0.0001, 0.001, 0.01)
+        # lr = (0.000001, 0.00001, )
+        # lr = (0.001, 0.01, 0.1)
+        # lr = (0.0001, )
+        """
+
+        ### Step 1)
+
+        n_segments = (32, )
+        alphabet_size = (64, )
+    
         n_heads = (4, )
         set_transf_hidden = (128, )
 
-        # xil_weight = (1000, 100, 10, 1, 0.1, 0.01)
+        xil = (True, )
+        p2s_decoy = (True, )
+        xil_weight = (0.000005, 0.00005, 0.0005, )
 
-        # xil_weight = (1000, 100)
-        # xil_weight = (10, 1 )
-        # xil_weight = (0.1, 0.01)
 
-        # xil_weight = (0.1, 1, 10, 100)
-        xil_weight = (0.1, )
 
-        # lr = (0.000001, 0.00001, 0.0001, 0.001, 0.01)
-        # lr = (0.000001, 0.00001)
-        lr = (0.0001, )
-        params = (n_segments, alphabet_size, n_heads, set_transf_hidden, xil_weight, lr)
+        ### Step 2)
+        params = (n_segments, alphabet_size, n_heads,
+                   set_transf_hidden, p2s_decoy, xil, xil_weight)
 
+        ### Step 3)
+        parameter_names = ("n_segments", "alphabet_size", "n_heads",
+                            "set_transf_hidden", "p2s_decoy", "xil", "xil_weight")
+        
 
     ### tsfresh
     elif args.concept == "tsfresh":
-        """
-        # settings = ("slow", "mid")
-        # set_heads = (4, 8, 16,)
-        # hidden_dim = (128, 256, 512)
-
-
-        ### Warning: settings, batch_size, set_heads and hidden_dim are overwritten here,
-        # so the values from the script are irrelevant for gridsearch.
-        settings = ("slow", )
-        set_heads = (4, )
-        hidden_dim = (128, )
-
-        args.batch_size = 128
-
-
-        np.random.seed(args.seed)
-        # 5 seeds are generated for acc calculation.
-        seeds = np.random.randint(0, 10000, size=args.num_tries).tolist()
-        print(f"seeds: {seeds}")
-
-        accs_test = []
-        accs_val = []
-        iteration_list = list(product(settings, set_heads, hidden_dim))
-
-        parameter_names = ('ts_setting, n_heads, set_transf_hidden')
-
-        filename = f"gridsearch/gridsearch_{utils.get_current_time()}.csv"
-        with open(filename, "a") as file:
-            file.write("setting,set_heads,hidden_dim,val_acc,test_acc\n")
-            file.flush()
-            # for (i, (ts_set, s, h)) in enumerate(iteration_list):
-            for (i, params) in enumerate(iteration_list):
-
-                for k in range(len(params)):
-                    setattr(args, parameter_names[k], params[k])
-
-                print(f"args.ts_setting: {args.ts_setting}")
-                print(f"args.n_heads: {args.n_heads}")
-                print(f"args.set_transf_hidden: {args.set_transf_hidden}")
-
-                # args.ts_setting = ts_set
-                # args.n_heads = s
-                # args.set_transf_hidden = h
-
-                for j in range(len(seeds)):
-
-                    print(f"\nTraining {i+1}/{len(iteration_list)}, Seed {j+1}/{len(seeds)}:",
-                          f" setting={params[0]}, set_heads={params[1]}, hidden_dim={params[2]}")
-                    # set_seed(seeds[j])
-                    utils.seed_everything(seeds[j])
-
-                    # torch.cuda.empty_cache()
-                    acc_test, acc_val = train(args)
-                    accs_test.append(acc_test)
-                    accs_val.append(acc_val)
-
-                # Calculate the average and the maximum deviation OF the different seeds
-                avg_acc_test = np.mean(accs_test)
-                dev_acc_test = np.max(np.abs(accs_test - avg_acc_test))
-                avg_acc_val = np.mean(accs_val)
-                dev_acc_val = np.max(np.abs(accs_val - avg_acc_val))
-
-                acc_test = f"{100 * avg_acc_test:.2f} ± {100 * dev_acc_test:.2f}"
-                acc_val = f"{100 * avg_acc_val:.2f} ± {100 * dev_acc_val:.2f}"
-
-                # file.write(f"{ts_set},{s},{h},{acc_val},{acc_test}\n")
-                file.write(f"{params[0]},{params[1]},{params[2]},{acc_val},{acc_test}\n")
-                file.flush()
-                print(f"seeds: {seeds}")
-                print(f"accs_test: {accs_test}")
-                print(f"accs_val: {accs_val}")
-            
-            """
         
         # Setup of parameters to iterate over.  
-        parameter_names = ("ts_setting", "n_heads", "set_transf_hidden")
-        ts_setting = ("slow", )
+        ts_setting = ("fast", "mid", "slow")
+
         n_heads = (4, )
         set_transf_hidden = (128, )
-        params = (ts_setting, n_heads, set_transf_hidden)
+        filter_tsf = (True, False)
+        normalize_tsf = (True, False)
+
+        params = (ts_setting, n_heads, set_transf_hidden, filter_tsf, normalize_tsf)
+        parameter_names = ("ts_setting", "n_heads", "set_transf_hidden", "filter_tsf", "normalize_tsf")
+
 
     elif args.concept == "vqshape":
-        parameter_names = ("n_heads", "set_transf_hidden")
         # parameter_names = ("used_model", "n_heads", "set_transf_hidden")
         # used_model = (0, )
+
+        """
+        # lr = (0.01, 0.001, 0.0001, 0.00001, 0.000001 )
+        # params = (used_model, n_heads, set_transf_hidden)
+        
+        """
+
         n_heads = (4, )
         set_transf_hidden = (128, )
-        params = (n_heads, set_transf_hidden)
-        # params = (used_model, n_heads, set_transf_hidden)
+        # set_transf_hidden = (32, )
+        lr = (0.01, 0.001, 0.0001, 0.00001, 0.000001 )
+        # lr = (0.0025, )
+        p2s_decoy = (False, )
+
+        params = (n_heads, set_transf_hidden, p2s_decoy, lr, )
+
+        parameter_names = ("n_heads", "set_transf_hidden", "p2s_decoy", "lr")
+
 
     gridsearch_helper(parameter_names, params, args)
 
