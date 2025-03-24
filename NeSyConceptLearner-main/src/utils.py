@@ -155,11 +155,9 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     time_steps = time_series.shape[0]
     increment = int(time_steps / concepts.shape[0])
 
+
     num_colors = np.max(concepts)
     # assert num_colors <= 19, "Alphabet size can't be higher than 10"
-    if num_colors > 19:
-        num_colors %= 20
-
     if(num_colors <= 8):
         get_color = colormaps['Set1']
     elif(num_colors <= 10):
@@ -177,8 +175,8 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     for seg_letter_i in concepts: 
         i_end = i_start + increment # exclusive end
         seg_mean = np.mean(time_series[i_start : i_end])
-        letter = alphabet[seg_letter_i] # TODO: Fix error for case if alphabet_size is big (not 10, but 32)
-        color = get_color(seg_letter_i)
+        letter = alphabet[seg_letter_i]
+        color = get_color(seg_letter_i % 20)
         hline = ax.hlines(y=seg_mean, xmin=i_start, xmax=i_end-1, color=color, 
                   linewidth=3, label=letter)  # Horizontal line
         i_start += increment
@@ -186,12 +184,24 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
             letters.append(letter)
             hlines.append(hline)
 
-    sorted_indices = sorted(range(len(letters)), key=lambda i: letters[i], reverse=True)
+    # sorted_indices = sorted(range(len(letters)), key=lambda i: letters[i], reverse=True)
+    sorted_indices = sorted(range(len(letters)), key=lambda i: (letters[i].isdigit(), letters[i].isupper(), letters[i]))
+    sorted_indices = sorted_indices[::-1]
+
+    # sorted_indices = sorted(range(len(letters)), key=lambda c: (c.isdigit(), c.isupper(), c.lower()))
     sorted_letters = [letters[i] for i in sorted_indices]
     sorted_hlines = [hlines[i] for i in sorted_indices]
-    ax.legend(handles=sorted_hlines, labels=sorted_letters)
+    
+    # print(alphabet)
+    # print(sorted_indices)
+    # print(sorted_letters)
+    # print(sorted_hlines)
 
-def create_expls(concept, concepts, saliencies, column_names, amount = 32):
+    # ax.legend(handles=sorted_hlines, labels=sorted_letters)
+    ax.legend(handles=sorted_hlines, labels=sorted_letters, loc="center left", bbox_to_anchor=(1, 0.5))
+
+
+def create_top_expls(concept, concepts, saliencies, column_names, amount = 5):
     """
     Returns a dict with the best/worst columns, concepts and importances
     of the top 10 features.
@@ -232,7 +242,7 @@ def create_expls(concept, concepts, saliencies, column_names, amount = 32):
     return dict
 
 
-def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_label):
+def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_label, save_plot=False, path=""):
     """
     Plots a figure of a time series sample with SAX labels. Marks important segments with a red box.
     """
@@ -241,8 +251,8 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
     alphabet = "".join((string.ascii_letters, string.digits))
     alphabet = list(alphabet[:saliencies.shape[1]])
 
-    fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
-    fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
+    fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(len(alphabet)*0.5, saliencies.shape[0]*0.18))
+    fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(len(alphabet)*0.6 , saliencies.shape[0]*0.25))
 
     # print("saliencies:")
     # print(saliencies)
@@ -259,13 +269,14 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
     cbar = plt.colorbar(heatmap, ax=ax2)
     cbar.set_label("Importance (Saliency)", fontsize=20)
 
-    # Annotate the heatmap with letters and saliency values
-    for i in range(saliencies.shape[0]):  # Rows
-        for j in range(saliencies.shape[1]):  # Columns
-            # TODO: Added short fix to avoid negative zeros, maybe move this somewhere else
-            # value = f"{saliencies[i, j]:.2f}"  # Format saliency value to 2 decimal places
-            value = f"{saliencies[i, j]:.2f}"  # Format saliency value to 2 decimal places
-            ax2.text(j, i, f"{value}", ha='center', va='center', color='white')
+    if len(alphabet) <= 16:
+        # Annotate the heatmap with letters and saliency values
+        for i in range(saliencies.shape[0]):  # Rows
+            for j in range(saliencies.shape[1]):  # Columns
+                # TODO: Added short fix to avoid negative zeros, maybe move this somewhere else
+                # value = f"{saliencies[i, j]:.2f}"  # Format saliency value to 2 decimal places
+                value = f"{saliencies[i, j]:.2f}"  # Format saliency value to 2 decimal places
+                ax2.text(j, i, f"{value}", ha='center', va='center', color='white')
 
     # Set tick labels
     # print(f"saliencies: {saliencies.shape}")
@@ -280,10 +291,14 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
 
     fig1.suptitle(f"True Class: {true_label}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
 
+    if save_plot:
+        fig1.savefig(f'{path}/{get_current_time()}_fig1.pdf')
+        fig2.savefig(f'{path}/{get_current_time()}_fig2.pdf')
+
     return fig1, fig2
 
 
-def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label):
+def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label, save_plot=False, path=""):
     """Plots a figure of a time series sample.
       Moreover returns a table with most important featues"""
  
@@ -296,7 +311,8 @@ def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label
     norm = plt.Normalize(vmin=-1, vmax=1)
     cmap = plt.cm.viridis
 
-    fig2, ax2 = plt.subplots(nrows=2, ncols=1, figsize=(20, 5))
+    fig2, ax2 = plt.subplots(nrows=2, ncols=1, figsize=(12, 5))
+    plt.subplots_adjust(hspace=0.01)
 
     best_columns = exp['best_columns']
     best_concepts = exp['best_concepts']
@@ -308,6 +324,10 @@ def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label
     best_table = ax2[0].table(cellText=np.column_stack((best_columns, best_concepts, best_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
     worst_table = ax2[1].table(cellText=np.column_stack((worst_columns, worst_concepts, worst_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
     
+    for table in (best_table, worst_table):
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+
     # Loop through each cell and apply the color map based on the importance value
     for (i, j), cell in best_table.get_celld().items():
         if i == 0:  # Skip header row
@@ -324,23 +344,49 @@ def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label
     # Turn off axis and display the table
     ax2[0].axis('off')
     ax2[1].axis('off')
+    # fig2.tight_layout()
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])  # Empty array for the colorbar
     plt.colorbar(sm, ax=ax2[1], orientation="horizontal", fraction=0.02, pad=0.04)
     
-
     fig1.suptitle(f"True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
     fig2.suptitle(f"10 Features with Best / Worst Prediction Contribution; True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
+    # if save_plot:
+    #     plt.savefig(f'xai/tsfresh/tsfresh_plot_{get_current_time()}.pdf')
+
+    if save_plot:
+        # print("\nsave_plot")
+        # print(fig1)
+        # print(fig2)
+        # print(path)
+        fig1.savefig(f'{path}/{get_current_time()}_fig1.pdf')
+        fig2.savefig(f'{path}/{get_current_time()}_fig2.pdf')
+    
     return fig1, fig2
 
-def plot_expl_vqshape(time_series, concepts, output, exp, true_label, pred_label):
+def plot_expl_vqshape(time_series, concepts, output, exp, true_label, pred_label, save_plot=False, path=""):
     # Plot samples
     fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
     ax1.plot(time_series)
 
-    output_dict, loss_dict = model.vqshapeTransformer.transform(batch, mode='evaluate')
+    output_dict, loss_dict = model.vqshapeTransformer.transform(time_series, mode='evaluate')
 
-    return visualize_shapes(output_dict)
+    if save_plot:
+        fig1.savefig(f'{path}/{get_current_time()}_fig1.pdf')
+
+    return fig1
+    # return visualize_shapes(output_dict)
+
+    # For more information, look at vqshape_utils.py
+
+    # visualize_shapes: returns a two figs:  
+    #  1) visualizing time series with 64 shapes
+    #  2) visualizing each decoded shape
+    # def visualize_shapes(attribute_dict, num_sample=10, num_s_sample=25, title=''):
+
+    # plot_code_heatmap: returns a fig with a 8x8 heatmap of 64 shapes
+        # def plot_code_heatmap(code_indices, num_codes, title=''):
+
     
 
 def create_expl_images(img, pred_attrs, table_expl_attrs, img_expl, true_class_name, pred_class_name, xticklabels):
@@ -451,6 +497,11 @@ def update_feature_dict(f_dict, features, pred = 0):
             f_dict[pred][f] = 1
     pass
 
+def prepare_path(concept):
+    start_time = get_current_time()
+    path = f"xai/{concept}/{start_time}"
+    os.makedirs(path)
+    return path
 
 def write_expls(net, data_loader, tagname, epoch, writer, args):
     """
@@ -459,6 +510,13 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
     """
 
     net.eval()
+    path = ""
+
+    if args.save_pdf:
+        path = prepare_path(args.concept)
+        # start_time = get_current_time()
+        # path = f"xai/{args.concept}/{start_time}"
+        # os.makedirs(path)
 
     for i, loaded_data in enumerate(data_loader):
 
@@ -478,34 +536,23 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
         # get explanations of set classifier
         table_saliencies = generate_intgrad_captum_table(net.set_cls, output_attr, preds)
 
+        # For vqshape only look at global explainability. Therefore use whole dataset
+        if args.concept == "vqshape":
 
+            writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
+            writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_B", fig2, epoch)
+            return
 
         # Add first 10 time series with their explanations to TensorBoard
         for sample_id, (sample, concept, output, table_expl, true_label, pred_label) in enumerate(zip(
                 samples, concepts, output_attr, table_saliencies, labels, preds
         )):
             
-            """
-             if args.concept == "sax":
-                fig1, fig2 = plot_expl_SAX(sample.cpu().numpy(),
-                                    concept.cpu().numpy(),
-                                    output.cpu().numpy(),
-                                    table_expl.cpu().numpy(),
-                                    true_label, pred_label)
-                
-                writer.add_figure(f"{tagname}_{sample_id}_SAX_A", fig1, epoch)
-                writer.add_figure(f"{tagname}_{sample_id}_SAX_B", fig2, epoch)
-                if sample_id >= 10:
-                    break  """
-                
-            # elif args.concept == "sax":
-
             concepts = concept.cpu().numpy()
             # print(f"concepts.shape: {concepts.shape}")
 
             table_expls = table_expl.cpu().numpy()
             # print(f"table_expls.shape: {table_expls.shape}")
-
 
             # Create explanations
             if(args.concept == "sax"):
@@ -528,33 +575,42 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                     writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
                 return
 
-            if args.explain_all:
+            if args.explain_all or args.concept == "tsfresh":
+                # Amount of top features to consider for global explainability
+                top_features = 5
+
                 # Dict is used for global explainability and is always used for tsfresh
-                dict_exp = create_expls(args.concept, concepts, table_expls_squeezed, column_labels)
+                dict_exp = create_top_expls(args.concept, concepts, table_expls_squeezed, column_labels, top_features)
 
             # Global explainability
             if args.explain_all and true_label == pred_label:
                 update_feature_dict(args.best_features, dict_exp['best_columns'], pred_label) 
                 update_feature_dict(args.worst_features, dict_exp['worst_columns'], pred_label)
 
+            # Save last sample as pdf
+            last_sample = args.save_pdf and sample_id == samples.size(0)-1
+
             # Local explainability
-            if sample_id < 10:
+            if sample_id < 10 or last_sample:
                 if (args.concept == "sax"):
                     fig1, fig2 = plot_expl_SAX(sample.cpu().numpy(),
                         concepts,
                         output.cpu().numpy(),   
                         table_expls,
-                        true_label, pred_label)
+                        true_label, pred_label,
+                        last_sample, path)
                     
                 elif (args.concept == "tsfresh"):
                     fig1, fig2 = plot_expl_tsfresh(sample.cpu().numpy(),
                         concepts,
                         output.cpu().numpy(),
                         dict_exp,
-                        true_label, pred_label)
+                        true_label, pred_label,
+                        last_sample, path)
                     
-                elif (args.concept == "vqshape"):
-                    pass
+                """
+                # elif (args.concept == "vqshape"):
+                #     pass
                     # fig1, fig2 = plot_expl_vqshape(sample.cpu().numpy(),
                     #         concepts,
                     #         output.cpu().numpy(),
@@ -564,9 +620,12 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 
                 # writer.add_figure(f"{tagname}_{sample_id}_tsfresh_A", fig1, epoch)
                 # writer.add_figure(f"{tagname}_{sample_id}_tsfresh_B", fig2, epoch)
-                writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
-                writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_B", fig2, epoch)
-
+                """
+                
+                if not last_sample:
+                    writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
+                    writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_B", fig2, epoch)
+            
 
 def write_global_expl(concept, split, feature_split, features, pred_class):
     """

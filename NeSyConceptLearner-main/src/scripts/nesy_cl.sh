@@ -12,41 +12,41 @@ MODEL="ts-concept-learner-$NUM"
 # CUDA_LAUNCH_BLOCKING=1 
 CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl.py --dataset p2s \
     --mode train --num-tries 5 \
-    --concept sax --n-segments 32 --alphabet-size 10 --n-heads 4 --set-transf-hidden 128 \
+    --concept tsfresh --ts-setting mid --n-heads 4 --set-transf-hidden 128 \
+    --load-tsf \
     --epochs 50 --name $MODEL --lr 0.0001 --batch-size 64 --seed 42 --num-workers 0 \
-    --explain
+    --explain --save-pdf
 
-# --p2s-decoy \
 
-# --xil --xil-weight 1
+# --explain --explain-all --save-pdf
 
-# --explain 
-
-# todo batch-size to 64
-
-# Added one zero 
-
-# --load-tsf \
 
 # ### SAX
 #     --concept sax --n-segments 64 --alphabet-size 4 --n-heads 4 --set-transf-hidden 128 \
 #     --epochs 50 --name $MODEL --lr 0.0001 --batch-size 64 --seed 42 --num-workers 0 \
 #     --xil --xil-weight 0.001
 
-# --concept sax --n-segments 32 --alphabet-size 10 --n-heads 4 --set-transf-hidden 128 \
+# --concept sax --n-segments 32 --alphabet-size 16 --n-heads 4 --set-transf-hidden 128 \
 # --concept sax --n-segments 7 --alphabet-size 3 --n-heads 4 --set-transf-hidden 128 \
 # --epochs 50 --name $MODEL --lr 0.0001 --batch-size 64 --seed 42 --num-workers 0 \
+
+# --p2s-decoy \
+# --xil --xil-weight 1
+
 
 # ### tsfresh
 # --concept tsfresh --ts-setting slow --n-heads 4 --set-transf-hidden 128 \
 # --load-tsf \
 
 # ### VQShape
+# --concept vqshape --n-heads 4 --set-transf-hidden 128 \
+    # --epochs 50 --name $MODEL --lr 0.0001 --batch-size 64 --seed 42 --num-workers 0 \
+    # --explain --save-pdf
+
 # --concept vqshape --n-heads 4 --set-transf-hidden 32 \
 # --epochs 50 --name $MODEL --lr 0.0025 --batch-size 128 --seed 42 --num-workers 0 \
 
 
-# --explain --explain-all
 
 # --load-tsf --filter-tsf --normalize-tsf
 # fast | mid| slow

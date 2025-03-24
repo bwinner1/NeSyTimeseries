@@ -155,16 +155,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
         args.best_features = [{}, {}]
         args.worst_features = [{}, {}]
-        """ 
-        if args.concept == "sax":
-            pass
-        elif args.concept == "tsfresh":
-            # Per sample, count the top 10 features contributing positively 
-            # and negatively to a class prediction, add them to the dictionary.
-            # The feature name is the key, while the value is the count
-            args.best_features = [{}, {}]
-            args.worst_features = [{}, {}]
- """
+
     for i, loaded_data in enumerate(loader, start=epoch * iters_per_epoch): 
 
         concepts = loaded_data[0]
@@ -438,6 +429,19 @@ def train(args):
 
     # tensorboard writer
     writer = utils.create_writer(args)
+
+    if args.concept == "vqshape":
+        ### BIG TODO
+
+        # splits = ("train", "val", "test")
+        # for i, split in enumerate(splits):
+        ### TODO: Input time series into 
+
+        split = "test"
+            
+        tagname = f"Expl/{split}"
+        writer.add_figure(f"{tagname}_{args.concept}_A", fig1, epoch)
+        writer.add_figure(f"{tagname}_{args.concept}_B", fig2, epoch)
 
     cur_best_val_loss = np.inf
     plot = args.explain 

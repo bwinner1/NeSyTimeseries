@@ -1,0 +1,120 @@
+feature_name;count
+fft_coefficient__attr_"real"__coeff_60;143
+fourier_entropy__bins_10;124
+fft_coefficient__attr_"real"__coeff_77;119
+fft_coefficient__attr_"abs"__coeff_57;52
+fft_coefficient__attr_"imag"__coeff_41;18
+fft_coefficient__attr_"abs"__coeff_22;63
+fft_coefficient__attr_"real"__coeff_17;11
+fft_coefficient__attr_"imag"__coeff_47;22
+fft_coefficient__attr_"angle"__coeff_2;101
+fft_coefficient__attr_"abs"__coeff_68;100
+fft_coefficient__attr_"imag"__coeff_87;61
+fft_coefficient__attr_"angle"__coeff_77;121
+fft_coefficient__attr_"real"__coeff_96;34
+agg_linear_trend__attr_"stderr"__chunk_len_10__f_agg_"var";72
+fft_coefficient__attr_"abs"__coeff_98;34
+change_quantiles__f_agg_"var"__isabs_True__qh_0.6__ql_0.0;72
+change_quantiles__f_agg_"var"__isabs_False__qh_0.8__ql_0.2;53
+fft_coefficient__attr_"real"__coeff_48;1
+cwt_coefficients__coeff_14__w_2__widths_(2, 5, 10, 20);9
+fft_coefficient__attr_"imag"__coeff_54;85
+fft_coefficient__attr_"real"__coeff_12;11
+fft_coefficient__attr_"abs"__coeff_26;4
+fft_coefficient__attr_"imag"__coeff_44;31
+fft_coefficient__attr_"real"__coeff_2;2
+fft_coefficient__attr_"angle"__coeff_50;30
+fft_coefficient__attr_"real"__coeff_55;56
+fft_coefficient__attr_"imag"__coeff_19;29
+fft_coefficient__attr_"angle"__coeff_23;53
+change_quantiles__f_agg_"var"__isabs_False__qh_1.0__ql_0.6;4
+agg_linear_trend__attr_"rvalue"__chunk_len_10__f_agg_"mean";52
+change_quantiles__f_agg_"mean"__isabs_True__qh_0.8__ql_0.2;7
+fft_coefficient__attr_"angle"__coeff_14;3
+fft_coefficient__attr_"real"__coeff_4;38
+fft_coefficient__attr_"real"__coeff_47;29
+augmented_dickey_fuller__attr_"usedlag"__autolag_"AIC";30
+fft_coefficient__attr_"angle"__coeff_21;18
+fft_coefficient__attr_"imag"__coeff_5;30
+cwt_coefficients__coeff_10__w_20__widths_(2, 5, 10, 20);4
+fft_coefficient__attr_"real"__coeff_58;9
+fft_coefficient__attr_"real"__coeff_29;13
+fft_coefficient__attr_"angle"__coeff_53;5
+partial_autocorrelation__lag_2;10
+sum_of_reoccurring_data_points;26
+change_quantiles__f_agg_"var"__isabs_True__qh_0.8__ql_0.2;7
+fft_coefficient__attr_"imag"__coeff_22;7
+permutation_entropy__dimension_3__tau_1;20
+ar_coefficient__coeff_6__k_10;4
+percentage_of_reoccurring_values_to_all_values;8
+binned_entropy__max_bins_10;1
+change_quantiles__f_agg_"mean"__isabs_True__qh_1.0__ql_0.6;8
+energy_ratio_by_chunks__num_segments_10__segment_focus_2;37
+fft_coefficient__attr_"real"__coeff_31;8
+cwt_coefficients__coeff_0__w_5__widths_(2, 5, 10, 20);10
+fft_coefficient__attr_"real"__coeff_41;2
+change_quantiles__f_agg_"var"__isabs_False__qh_0.6__ql_0.0;11
+fft_coefficient__attr_"real"__coeff_13;14
+quantile__q_0.4;19
+count_below__t_0;17
+cwt_coefficients__coeff_1__w_10__widths_(2, 5, 10, 20);8
+fft_coefficient__attr_"abs"__coeff_41;16
+fft_coefficient__attr_"imag"__coeff_26;3
+fft_coefficient__attr_"angle"__coeff_48;4
+number_crossing_m__m_0;1
+fft_coefficient__attr_"imag"__coeff_98;6
+lempel_ziv_complexity__bins_3;9
+index_mass_quantile__q_0.2;5
+fft_coefficient__attr_"imag"__coeff_21;4
+cwt_coefficients__coeff_4__w_2__widths_(2, 5, 10, 20);6
+fft_coefficient__attr_"angle"__coeff_83;14
+fft_coefficient__attr_"imag"__coeff_13;14
+change_quantiles__f_agg_"mean"__isabs_False__qh_1.0__ql_0.6;1
+change_quantiles__f_agg_"var"__isabs_False__qh_0.8__ql_0.6;5
+cwt_coefficients__coeff_2__w_10__widths_(2, 5, 10, 20);6
+cwt_coefficients__coeff_1__w_5__widths_(2, 5, 10, 20);2
+fft_coefficient__attr_"abs"__coeff_16;2
+fft_coefficient__attr_"angle"__coeff_46;3
+benford_correlation;1
+cwt_coefficients__coeff_14__w_10__widths_(2, 5, 10, 20);4
+cwt_coefficients__coeff_5__w_20__widths_(2, 5, 10, 20);1
+autocorrelation__lag_5;5
+c3__lag_2;4
+partial_autocorrelation__lag_9;3
+agg_linear_trend__attr_"stderr"__chunk_len_5__f_agg_"mean";1
+fft_coefficient__attr_"angle"__coeff_70;3
+quantile__q_0.6;4
+has_duplicate_min;6
+energy_ratio_by_chunks__num_segments_10__segment_focus_5;4
+first_location_of_maximum;4
+fft_coefficient__attr_"angle"__coeff_44;1
+agg_linear_trend__attr_"stderr"__chunk_len_50__f_agg_"max";2
+fft_coefficient__attr_"abs"__coeff_52;5
+change_quantiles__f_agg_"mean"__isabs_True__qh_1.0__ql_0.4;1
+fft_coefficient__attr_"imag"__coeff_18;1
+fft_coefficient__attr_"abs"__coeff_7;2
+fft_coefficient__attr_"imag"__coeff_82;2
+index_mass_quantile__q_0.3;1
+fft_coefficient__attr_"real"__coeff_37;1
+cwt_coefficients__coeff_13__w_20__widths_(2, 5, 10, 20);1
+number_peaks__n_1;2
+cwt_coefficients__coeff_1__w_20__widths_(2, 5, 10, 20);1
+fft_coefficient__attr_"imag"__coeff_88;3
+fft_coefficient__attr_"imag"__coeff_80;1
+fft_coefficient__attr_"real"__coeff_15;1
+fft_coefficient__attr_"abs"__coeff_17;1
+fft_coefficient__attr_"real"__coeff_18;1
+fft_coefficient__attr_"abs"__coeff_31;1
+fft_coefficient__attr_"angle"__coeff_60;2
+fft_coefficient__attr_"real"__coeff_70;2
+fft_coefficient__attr_"imag"__coeff_75;1
+autocorrelation__lag_2;1
+fft_coefficient__attr_"angle"__coeff_79;1
+fft_coefficient__attr_"angle"__coeff_34;1
+fft_coefficient__attr_"abs"__coeff_96;1
+fft_coefficient__attr_"angle"__coeff_58;1
+fft_coefficient__attr_"angle"__coeff_65;1
+linear_trend__attr_"slope";1
+autocorrelation__lag_8;1
+fft_coefficient__attr_"imag"__coeff_79;2
+fft_coefficient__attr_"real"__coeff_6;1

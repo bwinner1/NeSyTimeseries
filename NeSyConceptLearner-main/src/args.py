@@ -62,6 +62,7 @@ def get_args():
     parser.add_argument('--concept', choices=["sax", "tsfresh", "vqshape"],
                         help='concept that should be applied to times series' )
     
+    # xai params
     parser.add_argument(
         "--explain", action="store_true",
           help="Plot model explanations"
@@ -69,6 +70,10 @@ def get_args():
     parser.add_argument(
         "--explain-all", action="store_true",
           help="Print explanations over all samples"
+    )
+    parser.add_argument(
+        "--save-pdf", action="store_true",
+          help="If a pdf should be saved of explanation"
     )
 
     parser.add_argument('--n-heads', type=int,
