@@ -190,7 +190,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
         preds_all.extend(preds.cpu().numpy())
 
         # Plot predictions in Tensorboard
-        if plot and not(i % iters_per_epoch):
+        if plot and not(i % iters_per_epoch) and not args.concept == "vqshape":
             utils.write_expls(net, loader, f"Expl/{split}", epoch, writer, args)
 
 
@@ -248,7 +248,7 @@ def train(args):
         # ts_train_speeds = np.array(train_dataset['train']['speed'])
         
         # Number of samples that goes into the train dataset; the rest goes into the validation dataset
-        training_samples = int(ts_train.shape[0] * 0.8)
+        training_samples = int(ts_train.shape[0] * 0.8) 
         ts_val = ts_train[training_samples :]
         
         ts_train = ts_train[: training_samples]
@@ -332,14 +332,26 @@ def train(args):
 
     elif args.concept == "vqshape":
 
-        vqshape = model.vqshapeTransformer()
+        vqshape_model = model.vqshapeTransformer(args.model)
+
 
         with torch.no_grad():
-            concepts_train = vqshape.transform(ts_train)
-            concepts_val = vqshape.transform(ts_val)
-            concepts_test = vqshape.transform(ts_test)
+            concepts_train = vqshape_model.transform(ts_train)
+            concepts_val = vqshape_model.transform(ts_val)
+            concepts_test = vqshape_model.transform(ts_test)
 
+            if args.explain and args.save_pdf:
+                # TODO: Make sure to interpolate time series if needed
+                dict = vqshape_model.transform(ts_test, mode="evaluate")[0]
+                print("dict stuff:")
+                # print(dict)
+                print(dict.keys())
+                print(dict["s_true"].shape)
+                path = utils.prepare_path("vqshape")
+                utils.plot_expl_vqshape(dict, args.save_pdf, path)
+            
         print("vqshape DONE")
+        empty_gpu_memory()
 
     else:
         print("Given summarizer doesn't exist")
@@ -430,19 +442,25 @@ def train(args):
     # tensorboard writer
     writer = utils.create_writer(args)
 
+    """
     if args.concept == "vqshape":
         ### BIG TODO
 
-        # splits = ("train", "val", "test")
+        ### TODO: Input time series into vqshape
         # for i, split in enumerate(splits):
-        ### TODO: Input time series into 
-
+        # splits = ("train", "val", "test")
+        del vqshape_model
+        empty_gpu_memory()
         split = "test"
-            
+        fig1 = utils.plot_expl_vqshape(ts_test)
+        # vqshape = model.vqshapeTransformer()
+
+
         tagname = f"Expl/{split}"
         writer.add_figure(f"{tagname}_{args.concept}_A", fig1, epoch)
-        writer.add_figure(f"{tagname}_{args.concept}_B", fig2, epoch)
-
+        # writer.add_figure(f"{tagname}_{args.concept}_B", fig2, epoch)
+    """
+        
     cur_best_val_loss = np.inf
     plot = args.explain 
     for epoch in range(args.epochs):
@@ -737,17 +755,18 @@ def gridsearch(args):
         # params = (used_model, n_heads, set_transf_hidden)
         
         """
-
         n_heads = (4, )
         set_transf_hidden = (128, )
+        model = (1, 2)
         # set_transf_hidden = (32, )
-        lr = (0.01, 0.001, 0.0001, 0.00001, 0.000001 )
+        lr = (0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001,)
+        # lr = (0.01, 0.001, 0.0001, 0.00001, 0.000001 )
         # lr = (0.0025, )
         p2s_decoy = (False, )
 
-        params = (n_heads, set_transf_hidden, p2s_decoy, lr, )
+        params = (n_heads, set_transf_hidden, model, p2s_decoy, lr, )
 
-        parameter_names = ("n_heads", "set_transf_hidden", "p2s_decoy", "lr")
+        parameter_names = ("n_heads", "set_transf_hidden", "model", "p2s_decoy", "lr")
 
 
     gridsearch_helper(parameter_names, params, args)
@@ -841,6 +860,13 @@ def set_seed(seed):
     np.random.seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
+def empty_gpu_memory():
+    print(f"Allocated memory: {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
+    print(f"Cached memory: {torch.cuda.memory_reserved() / 1024**2:.2f} MB")
+    torch.cuda.empty_cache()
+    print(f"Allocated memory: {torch.cuda.memory_allocated() / 1024**2:.2f} MB")
+    print(f"Cached memory: {torch.cuda.memory_reserved() / 1024**2:.2f} MB")
 
 
 def main():

@@ -113,6 +113,10 @@ def get_args():
     parser.add_argument('--num-tries', default = 1, type=int,
                         help='Num of tries for avg and max deviation calculation.')
     
+    # vqshape
+    parser.add_argument('--model', default = 1, type=int,
+                        help='Model number to choose.')
+    
 
 
     args = parser.parse_args()

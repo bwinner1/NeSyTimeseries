@@ -34,7 +34,9 @@ def plot_code_heatmap(code_indices, num_codes, title=''):
     heatmap = heatmap.numpy()
 
     # Plot the heatmap
-    fig, ax = plt.subplots(figsize=(10, 10))
+    # fig, ax = plt.subplots(figsize=(10, 10))
+    # Edit: a smaller figsize
+    fig, ax = plt.subplots(figsize=(5, 5))
     im = ax.imshow(heatmap, aspect='auto')
     cbar = fig.colorbar(im, ax=ax)
     cbar.set_label("Frequency")
@@ -63,9 +65,11 @@ def visualize_shapes(attribute_dict, num_sample=10, num_s_sample=25, title=''):
     sample_idx = np.random.randint(0, attribute_dict['x_true'].shape[0], num_sample)
 
     # Visualize time series and all 64 shapes
-    fig = plt.figure(figsize=(30, 4))
+    fig = plt.figure(figsize=(8, 4))
     for i, idx in enumerate(sample_idx):
-        ax = fig.add_subplot(num_sample//5, 5, i+1)
+        # ax = fig.add_subplot(   num_sample//5, 5, i+1)
+        # edit: changed vqshape to work for multiples of 2 instead of 5
+        ax = fig.add_subplot(   num_sample//2, 2, i+1)
         ax.plot(np.linspace(0, 1, attribute_dict['x_true'].shape[-1]), attribute_dict['x_true'][idx], color='tab:grey', linewidth=5, alpha=0.3)
         ax.plot(np.linspace(0, 1, attribute_dict['x_true'].shape[-1]), attribute_dict['x_pred'][idx], color='tab:blue', linewidth=5, alpha=0.3)
         for j in range(attribute_dict['t_pred'].shape[1]):

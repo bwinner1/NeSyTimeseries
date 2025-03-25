@@ -298,7 +298,7 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
     return fig1, fig2
 
 
-def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label, save_plot=False, path=""):
+def plot_expl_tsfresh(time_series, exp, true_label, pred_label, top_features, save_plot=False, path=""):
     """Plots a figure of a time series sample.
       Moreover returns a table with most important featues"""
  
@@ -311,8 +311,9 @@ def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label
     norm = plt.Normalize(vmin=-1, vmax=1)
     cmap = plt.cm.viridis
 
-    fig2, ax2 = plt.subplots(nrows=2, ncols=1, figsize=(12, 5))
-    plt.subplots_adjust(hspace=0.01)
+    # fig2, ax2 = plt.subplots(nrows=2, ncols=1, figsize=(12, 5))
+    fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(9, 2))
+    fig3, ax3 = plt.subplots(nrows=1, ncols=1, figsize=(9, 2))
 
     best_columns = exp['best_columns']
     best_concepts = exp['best_concepts']
@@ -321,12 +322,18 @@ def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label
     worst_concepts = exp['worst_concepts']
     worst_importance = exp['worst_importance']
 
-    best_table = ax2[0].table(cellText=np.column_stack((best_columns, best_concepts, best_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
-    worst_table = ax2[1].table(cellText=np.column_stack((worst_columns, worst_concepts, worst_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
+    # best_table = ax2[0].table(cellText=np.column_stack((best_columns, best_concepts, best_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
+    # worst_table = ax2[1].table(cellText=np.column_stack((worst_columns, worst_concepts, worst_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
+    best_table = ax2.table(cellText=np.column_stack((best_columns, best_concepts, best_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
+    worst_table = ax3.table(cellText=np.column_stack((worst_columns, worst_concepts, worst_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
     
     for table in (best_table, worst_table):
         table.auto_set_font_size(False)
-        table.set_fontsize(10)
+        table.set_fontsize(9)
+        table.auto_set_column_width([0])
+        table.auto_set_column_width([1])
+        table.auto_set_column_width([2])
+        table.scale(1.5, 1.1)
 
     # Loop through each cell and apply the color map based on the importance value
     for (i, j), cell in best_table.get_celld().items():
@@ -342,15 +349,22 @@ def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label
         cell.set_facecolor(cmap(norm(worst_importance[i-1])))
 
     # Turn off axis and display the table
-    ax2[0].axis('off')
-    ax2[1].axis('off')
+    # ax2[0].axis('off')
+    # ax2[1].axis('off')
+    ax2.axis('off')
+    ax3.axis('off')
+
+
     # fig2.tight_layout()
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])  # Empty array for the colorbar
-    plt.colorbar(sm, ax=ax2[1], orientation="horizontal", fraction=0.02, pad=0.04)
+    # plt.colorbar(sm, ax=ax2[1], orientation="horizontal", fraction=0.02, pad=0.04)
+    fig2.colorbar(sm, ax=ax2, orientation="horizontal", fraction=0.02, pad=0.04)
+    fig3.colorbar(sm, ax=ax3, orientation="horizontal", fraction=0.02, pad=0.04)
     
     fig1.suptitle(f"True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
-    fig2.suptitle(f"10 Features with Best / Worst Prediction Contribution; True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
+    fig2.suptitle(f"Top {top_features} Features with Positive Prediction Contributions; True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
+    fig3.suptitle(f"Top {top_features} Features with Negative Prediction Contributions; True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
     # if save_plot:
     #     plt.savefig(f'xai/tsfresh/tsfresh_plot_{get_current_time()}.pdf')
 
@@ -359,22 +373,37 @@ def plot_expl_tsfresh(time_series, concepts, output, exp, true_label, pred_label
         # print(fig1)
         # print(fig2)
         # print(path)
-        fig1.savefig(f'{path}/{get_current_time()}_fig1.pdf')
-        fig2.savefig(f'{path}/{get_current_time()}_fig2.pdf')
+        fig1.savefig(f'{path}/{get_current_time()}_fig1.pdf', transparent=True)
+        fig2.savefig(f'{path}/{get_current_time()}_fig2.pdf', transparent=True)
+        fig3.savefig(f'{path}/{get_current_time()}_fig3.pdf', transparent=True)
     
-    return fig1, fig2
+    return fig1, fig2, fig3
 
-def plot_expl_vqshape(time_series, concepts, output, exp, true_label, pred_label, save_plot=False, path=""):
+# def plot_expl_vqshape(time_series, concepts, output, exp, true_label, pred_label, save_plot=False, path=""):
+# def plot_expl_vqshape(vqshape_model, time_series, save_plot=False, path=""):
+# def plot_expl_vqshape(time_series, save_plot=False, path=""):
+
+def plot_expl_vqshape(dict, save_plot=False, path=""):
     # Plot samples
-    fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
-    ax1.plot(time_series)
+    # fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
+    # ax1.plot(time_series)
 
-    output_dict, loss_dict = model.vqshapeTransformer.transform(time_series, mode='evaluate')
+    # vqshape = model.vqshapeTransformer()
+
+    # output_dict, loss_dict = vqshape.transform(time_series, mode='evaluate')
+    # output_dict, loss_dict = vqshape_model.transform(time_series, mode='evaluate')
+# def visualize_shapes(attribute_dict, num_sample=10, num_s_sample=25, title=''):
+
+    fig1, fig2 = visualize_shapes(dict, num_sample=4, num_s_sample=30)
+    code = torch.tensor(dict["code_idx"]).to(torch.int64)
+    num_codes = 64
+    fig3 = plot_code_heatmap(code, num_codes)
 
     if save_plot:
         fig1.savefig(f'{path}/{get_current_time()}_fig1.pdf')
+        fig2.savefig(f'{path}/{get_current_time()}_fig2.pdf')
+        fig3.savefig(f'{path}/{get_current_time()}_fig3.pdf')
 
-    return fig1
     # return visualize_shapes(output_dict)
 
     # For more information, look at vqshape_utils.py
@@ -537,11 +566,10 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
         table_saliencies = generate_intgrad_captum_table(net.set_cls, output_attr, preds)
 
         # For vqshape only look at global explainability. Therefore use whole dataset
-        if args.concept == "vqshape":
-
-            writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
-            writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_B", fig2, epoch)
-            return
+        # if args.concept == "vqshape":
+        #     writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
+        #     writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_B", fig2, epoch)
+        #     return
 
         # Add first 10 time series with their explanations to TensorBoard
         for sample_id, (sample, concept, output, table_expl, true_label, pred_label) in enumerate(zip(
@@ -565,6 +593,8 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 table_expls = table_expls[0]
                 table_expls_squeezed = table_expls
             elif args.concept == "vqshape":
+                return
+                """
                 if sample_id < 1:
                     fig1 = plot_expl_vqshape(sample.cpu().numpy(),
                         concepts,
@@ -574,7 +604,7 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
 
                     writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
                 return
-
+                """
             if args.explain_all or args.concept == "tsfresh":
                 # Amount of top features to consider for global explainability
                 top_features = 5
@@ -601,11 +631,9 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                         last_sample, path)
                     
                 elif (args.concept == "tsfresh"):
-                    fig1, fig2 = plot_expl_tsfresh(sample.cpu().numpy(),
-                        concepts,
-                        output.cpu().numpy(),
+                    fig1, fig2, fig3 = plot_expl_tsfresh(sample.cpu().numpy(),
                         dict_exp,
-                        true_label, pred_label,
+                        true_label, pred_label, top_features, 
                         last_sample, path)
                     
                 """
@@ -625,6 +653,7 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 if not last_sample:
                     writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
                     writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_B", fig2, epoch)
+                    writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_C", fig3, epoch)
             
 
 def write_global_expl(concept, split, feature_split, features, pred_class):

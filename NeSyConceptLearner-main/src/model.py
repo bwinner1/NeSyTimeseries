@@ -572,19 +572,28 @@ class tsfreshTransformer:
         # return torch.tensor(X_filtered.to_numpy(), dtype=torch.float32).unsqueeze(1), filtered_columns
 
 class vqshapeTransformer:
-    def __init__(self, model_to_use=2):
+    def __init__(self, model_to_use):
         ### TODO: Correct optional parameter. For gridsearch to work correctly, 
         # args.model_to_use has to be used
 
         ### Loading Checkpoint
         # First: Manually creates, Second: Best with least parameter, Third: Best 
         checkpoints = ('uea_dim512_codebook64_m', 'uea_dim256_codebook512', 'uea_dim512_codebook64')
-        
-        # dim = 0
-        # cb = 0
-        # checkpoint = f"uea_dim{dim}_codebook{cb}_m"
+        # print("checkpoints")
+        # print(checkpoints)
+        # print("model_to_use")
+        # print(model_to_use)
 
-        checkpoint_path = f"VQShape/checkpoints/vqshape_pretrain/{checkpoints[model_to_use]}/VQShape.ckpt"
+        dims = (512, 256, 512)
+        codes = (64, 512, 64)
+        self.dim = dims[model_to_use]
+        print("self.dim")
+        print(self.dim)
+        self.code = codes[model_to_use]
+        checkpoint = f"uea_dim{self.dim}_codebook{self.code}"
+
+        # checkpoint_path = f"VQShape/checkpoints/vqshape_pretrain/{checkpoints[model_to_use]}/VQShape.ckpt"
+        checkpoint_path = f"VQShape/checkpoints/vqshape_pretrain/{checkpoint}/VQShape.ckpt"
         lit_model = LitVQShape.load_from_checkpoint(checkpoint_path, 'cuda')
         self.model = lit_model.model
 
@@ -604,10 +613,13 @@ class vqshapeTransformer:
 
         # F.interpolate requires dimensions (batch, channels, time/height/width)
         x = x.unsqueeze(1)
-        x = F.interpolate(x, 512, mode='linear')  # first interpolate to 512 timesteps
-
+        x = F.interpolate(x, self.dim, mode='linear')  # first interpolate to 512 timesteps
+        print("Before inputting into model:") 
+        print("x.size()")
+        print(x.size())
         ### TODO: Plot time series here, just to be sure
         x = x.squeeze(1)
+        print(x.size())
         # transform to univariate time-series, our ts are already univariate
         # x = rearrange(x, 'b c t -> (b c) t')  
 
@@ -616,29 +628,29 @@ class vqshapeTransformer:
 
         if mode == 'evaluate':
             output_dict, loss_dict = self.model(x, mode='evaluate')
-            print("output")
-            print(output_dict.keys())
-            print(output_dict.items())
+            # print("output")
+            # print(output_dict.keys())
+            # print(output_dict.items())
 
-            print(loss_dict.keys())
-            print(loss_dict.items())
+            # print(loss_dict.keys())
+            # print(loss_dict.items())
             return output_dict, loss_dict
 
         elif mode == 'tokenize':
 
             output = self.model(x, mode='tokenize')[0] # tokenize with VQShape
-            print("output['token'][0]")
-            print(output['token'][0])
-            print(output['token'].size())
+            # print("output['token'][0]")
+            # print(output['token'][0])
+            # print(output['token'].size())
 
-            print("output['histogram'][0]")
-            print(output['histogram'][0])
-            print(output['histogram'].size())
+            # print("output['histogram'][0]")
+            # print(output['histogram'][0])
+            # print(output['histogram'].size())
         
             histogramm = output['histogram'] 
             hist_of_hist = torch.sum(histogramm, 0) 
-            print("hist_of_hist")
-            print(hist_of_hist)
+            # print("hist_of_hist")
+            # print(hist_of_hist)
 
             histogramm = histogramm.unsqueeze(1)
             return histogramm
