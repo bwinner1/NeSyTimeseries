@@ -519,7 +519,14 @@ def train(args):
 
     writer.close()
 
-    return acc_test, acc_val
+    if not args.tr_acc:
+        return acc_test, acc_val
+    else:
+
+        acc_train = get_confusion_from_ckpt(net, train_loader, criterion, args=args, datasplit='test_best',
+                        writer=writer)
+        return acc_test, acc_val, acc_train
+        
 
 
 def test(args):
@@ -709,26 +716,40 @@ def gridsearch(args):
         """
 
         ### Step 1)
-
+        """ 
+        # n_segments = (4, 8, 16, 32, 64, 128, 256, 512)
+        # n_segments = (64, )
+        # alphabet_size = (4, )
+        # alphabet_size = (4, 8, 16, 32, 64, )
+        # n_segments = (32, )
+        # alphabet_size = (4, )
+        # xil_weight = (0.000005, 0.00005, 0.0005, )
+        n_segments = (512, )
+        alphabet_size = (32, )
+ """
         n_segments = (32, )
         alphabet_size = (64, )
     
         n_heads = (4, )
         set_transf_hidden = (128, )
-
-        xil = (True, )
         p2s_decoy = (True, )
-        xil_weight = (0.000005, 0.00005, 0.0005, )
+        # p2s_decoy = (True, )
+
+        xil = (False, )
+        # xil_weight = (0.00001, 0.0001, 0.001)
+        # xil = (True, )
+        xil_weight = (0.0001, )
+        tr_acc = (True, ) 
 
 
 
         ### Step 2)
         params = (n_segments, alphabet_size, n_heads,
-                   set_transf_hidden, p2s_decoy, xil, xil_weight)
+                   set_transf_hidden, p2s_decoy, xil, xil_weight, tr_acc)
 
         ### Step 3)
         parameter_names = ("n_segments", "alphabet_size", "n_heads",
-                            "set_transf_hidden", "p2s_decoy", "xil", "xil_weight")
+                            "set_transf_hidden", "p2s_decoy", "xil", "xil_weight", "tr_acc")
         
 
     ### tsfresh
@@ -786,11 +807,16 @@ def gridsearch_helper(param_names, param_lists, args):
     with open(filename, "a") as file:
 
         param_names_csv = ",".join(param_names)
-        file.write(f"{param_names_csv},val_acc,test_acc\n")
+        if args.tr_acc:
+            file.write(f"{param_names_csv},val_acc,test_acc\n")
+        else:
+            file.write(f"{param_names_csv},val_acc,test_acc,train_acc\n")
+        
         file.flush()
         for (i, params) in enumerate(iteration_list):
             accs_test = []
             accs_val = []
+            accs_train = []
 
             ### TODO: Add dictionary
             # args.ts_setting = d['ts_setting']
@@ -819,9 +845,16 @@ def gridsearch_helper(param_names, param_lists, args):
                 utils.seed_everything(seeds[j])
 
                 # torch.cuda.empty_cache()
-                acc_test, acc_val = train(args)
+                if not args.tr_acc:
+                    acc_test, acc_val = train(args)
+                else:
+                    acc_test, acc_val, acc_train = train(args)
+                    
                 accs_test.append(acc_test)
                 accs_val.append(acc_val)
+                
+                if args.tr_acc:
+                    accs_train.append(acc_train)
             """ 
             # Calculate the average and the maximum deviation of the different seeds
             avg_acc_test = np.mean(accs_test)
@@ -836,16 +869,27 @@ def gridsearch_helper(param_names, param_lists, args):
             print("accs_val")
             print(accs_val)
             print(len(accs_val))
+            print("accs_train")
+            print(accs_train)
+            print(len(accs_train))
+            
             # Calculate the average and the standard deviation of the different seeds
             avg_acc_test = np.mean(accs_test)
             stddiv_acc_test = np.std(accs_test)
             avg_acc_val = np.mean(accs_val)
             stddiv_acc_val = np.std(accs_val)
+            avg_acc_train = np.mean(accs_train)
+            stddiv_acc_train = np.std(accs_train)
 
             acc_test = f"{100 * avg_acc_test:.2f} ± {100 * stddiv_acc_test:.2f}"
             acc_val = f"{100 * avg_acc_val:.2f} ± {100 * stddiv_acc_val:.2f}"
+            acc_train = f"{100 * avg_acc_train:.2f} ± {100 * stddiv_acc_train:.2f}"
 
-            file.write(f"{','.join(str(p) for p in params)},{acc_val},{acc_test}\n")
+            if not args.tr_acc:
+                file.write(f"{','.join(str(p) for p in params)},{acc_val},{acc_test}\n")
+            else:
+                file.write(f"{','.join(str(p) for p in params)},{acc_val},{acc_test},{acc_train}\n")
+                
             # file.write(f"{ts_set},{s},{h},{acc_val},{acc_test}\n")
             file.flush()
             print(f"seeds: {seeds}")

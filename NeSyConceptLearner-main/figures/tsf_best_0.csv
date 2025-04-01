@@ -1,0 +1,21 @@
+Best Feature Name;Count
+fft_coefficient__attr_"abs"__coeff_55;187
+fft_coefficient__attr_"real"__coeff_55;187
+fft_coefficient__attr_"abs"__coeff_56;180
+autocorrelation__lag_8;178
+fft_coefficient__attr_"abs"__coeff_57;163
+fft_coefficient__attr_"imag"__coeff_57;161
+agg_autocorrelation__f_agg_"var"__maxlag_40;157
+energy_ratio_by_chunks__num_segments_10__segment_focus_8;145
+fft_coefficient__attr_"real"__coeff_29;130
+fft_coefficient__attr_"abs"__coeff_58;121
+linear_trend__attr_"pvalue";95
+fft_coefficient__attr_"real"__coeff_34;80
+fft_coefficient__attr_"abs"__coeff_29;70
+fft_coefficient__attr_"abs"__coeff_34;69
+fourier_entropy__bins_5;69
+fft_coefficient__attr_"angle"__coeff_1;67
+fft_aggregated__aggtype_"variance";62
+agg_linear_trend__attr_"stderr"__chunk_len_10__f_agg_"var";48
+fft_coefficient__attr_"imag"__coeff_11;39
+change_quantiles__f_agg_"mean"__isabs_True__qh_1.0__ql_0.6;36

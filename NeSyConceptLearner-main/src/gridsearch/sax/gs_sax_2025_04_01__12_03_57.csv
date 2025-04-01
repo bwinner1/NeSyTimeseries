@@ -1,0 +1,2 @@
+n_segments,alphabet_size,n_heads,set_transf_hidden,p2s_decoy,xil,xil_weight,tr_acc,val_acc,test_acc,train_acc
+32,64,4,128,True,False,0.0001,True,99.48 ± 0.42,86.41 ± 1.65,100.00 ± 0.00

@@ -80,6 +80,10 @@ def get_args():
                         help='number of set heads for set transformer')
     parser.add_argument('--set-transf-hidden', type=int,
                         help='number of hidden dimensions for set transformer')
+    parser.add_argument('--tr-acc', action="store_true",
+                        help='if training accuracy should be printed as well')
+    
+
 
     # SAX params
     parser.add_argument('--n-segments', default=8, type=int,
