@@ -100,15 +100,15 @@ def get_args():
     # tsfresh params
     parser.add_argument(
         "--load-tsf", action="store_true",
-          help="Load previous tsfresh data, don't run tsfresh"
+          help="Load previously extracted tsfresh features, don't run tsfresh from scratch"
     )
     parser.add_argument(
         "--filter-tsf", action="store_true",
-          help="Load previous tsfresh data, don't run tsfresh"
+          help="Use features filtering from tsfresh"
     )
     parser.add_argument(
         "--normalize-tsf", action="store_true",
-          help="Load previous tsfresh data, don't run tsfresh"
+          help="Normalize data before applying tsfresh"
     )
     parser.add_argument('--ts-setting', choices=["fast", "mid", "slow"],
                         help='function calculator parameter for feature \

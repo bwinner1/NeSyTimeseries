@@ -10,9 +10,6 @@ import glob
 from sklearn import metrics
 from tqdm import tqdm
 
-import data_clevr_hans as data
-from p2s import P2S_Dataset
-
 import model
 import utils as utils
 from rtpt import RTPT
@@ -83,8 +80,6 @@ def run_test_final(net, loader, criterion, writer, args, datasplit):
             if args.xil:
                 masks = loaded_data[3].float().to(args.device)
 
-
-
             # input is either a set or an image
             # imgs, target_set, img_class_ids, img_ids, _, table_expl = map(lambda x: x.cuda(), sample)
             # img_class_ids = img_class_ids.long()
@@ -149,14 +144,12 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
 
     # Dictionary to save importance statistics over all samples
-    # global_importance = {}
-
+    # 
     if args.explain_all:
-
         args.best_features = [{}, {}]
         args.worst_features = [{}, {}]
 
-    for i, loaded_data in enumerate(loader, start=epoch * iters_per_epoch): 
+    for i, loaded_data in enumerate(loader, start=epoch * iters_per_epoch):
 
         concepts = loaded_data[0]
         labels = loaded_data[1]
@@ -334,7 +327,6 @@ def train(args):
 
         vqshape_model = model.vqshapeTransformer(args.model)
 
-
         with torch.no_grad():
             concepts_train = vqshape_model.transform(ts_train)
             concepts_val = vqshape_model.transform(ts_val)
@@ -441,25 +433,6 @@ def train(args):
 
     # tensorboard writer
     writer = utils.create_writer(args)
-
-    """
-    if args.concept == "vqshape":
-        ### BIG TODO
-
-        ### TODO: Input time series into vqshape
-        # for i, split in enumerate(splits):
-        # splits = ("train", "val", "test")
-        del vqshape_model
-        empty_gpu_memory()
-        split = "test"
-        fig1 = utils.plot_expl_vqshape(ts_test)
-        # vqshape = model.vqshapeTransformer()
-
-
-        tagname = f"Expl/{split}"
-        writer.add_figure(f"{tagname}_{args.concept}_A", fig1, epoch)
-        # writer.add_figure(f"{tagname}_{args.concept}_B", fig2, epoch)
-    """
         
     cur_best_val_loss = np.inf
     plot = args.explain 
@@ -681,6 +654,11 @@ def calc_xil_loss(ra_loss, masks, saliencies, rr_weight):
     return loss
 
 def gridsearch(args):
+    """
+    Gridsearch setup method. Here you can specify the values that should be iterated 
+    over during the optimal parameter search. Each parameter configuration will be run 5 
+    times per default, as defined in nesy_cl.sh
+    """
 
     ### WARNING ###
     # Every value that is used here, overwrites the given value in the script.
@@ -691,57 +669,19 @@ def gridsearch(args):
     # 3) Add the parameter into parameter_names
 
     if args.concept == "sax":
-            
-        """
-        # n_segments = (64, 128, 256, 512)
-        # n_segments = (32, 64, 128, 256)   
-                 
-        # n_segments = (16, 32, 64, 128, 256 )
-        # n_segments = (64, )
-
-        # alphabet_size = (4, 8, 16, 32, 64)
-        # alphabet_size = (4, 8, 16, 32, 64)
-        
-        # xil_weight = (0.000001, 0.00001, 0.0001, )
-        # xil_weight = (0.0001, )
-        # xil_weight = (0.001, 0.01, 0.1)
-        # xil_weight = (0.001, 0.01, 0.1, 1, 10)
-        # xil_weight = (0.1, 1, 10, 100)
-        # xil_weight = (0.05, 0.1, 0.5, )
-
-        # lr = (0.00001, 0.0001, 0.001, 0.01)
-        # lr = (0.000001, 0.00001, )
-        # lr = (0.001, 0.01, 0.1)
-        # lr = (0.0001, )
-        """
-
+         
         ### Step 1)
-        """ 
-        # n_segments = (4, 8, 16, 32, 64, 128, 256, 512)
-        # n_segments = (64, )
-        # alphabet_size = (4, )
-        # alphabet_size = (4, 8, 16, 32, 64, )
-        # n_segments = (32, )
-        # alphabet_size = (4, )
-        # xil_weight = (0.000005, 0.00005, 0.0005, )
-        n_segments = (512, )
-        alphabet_size = (32, )
- """
+
         n_segments = (32, )
         alphabet_size = (64, )
     
         n_heads = (4, )
         set_transf_hidden = (128, )
-        p2s_decoy = (True, )
-        # p2s_decoy = (True, )
 
+        p2s_decoy = (True, )
         xil = (False, )
-        # xil_weight = (0.00001, 0.0001, 0.001)
-        # xil = (True, )
         xil_weight = (0.0001, )
         tr_acc = (True, ) 
-
-
 
         ### Step 2)
         params = (n_segments, alphabet_size, n_heads,
@@ -751,7 +691,6 @@ def gridsearch(args):
         parameter_names = ("n_segments", "alphabet_size", "n_heads",
                             "set_transf_hidden", "p2s_decoy", "xil", "xil_weight", "tr_acc")
         
-
     ### tsfresh
     elif args.concept == "tsfresh":
         
@@ -768,25 +707,14 @@ def gridsearch(args):
 
 
     elif args.concept == "vqshape":
-        # parameter_names = ("used_model", "n_heads", "set_transf_hidden")
-        # used_model = (0, )
 
-        """
-        # lr = (0.01, 0.001, 0.0001, 0.00001, 0.000001 )
-        # params = (used_model, n_heads, set_transf_hidden)
-        
-        """
         n_heads = (4, )
         set_transf_hidden = (128, )
         model = (1, 2)
-        # set_transf_hidden = (32, )
         lr = (0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001,)
-        # lr = (0.01, 0.001, 0.0001, 0.00001, 0.000001 )
-        # lr = (0.0025, )
         p2s_decoy = (False, )
 
         params = (n_heads, set_transf_hidden, model, p2s_decoy, lr, )
-
         parameter_names = ("n_heads", "set_transf_hidden", "model", "p2s_decoy", "lr")
 
 
@@ -794,12 +722,16 @@ def gridsearch(args):
 
 
 def gridsearch_helper(param_names, param_lists, args):
+    """
+    Actual gridsearch method. Runs the model with each possible configuration and writes a file
+    with the used parameters and the resulting accuracy values.
+    """
 
-
+    # Extract the specified parameter lists, build a product and convert the result to a list
     iteration_list = list(product(*param_lists))
 
     np.random.seed(args.seed)
-    # 5 seeds are generated for acc calculation.
+    # 5 (num_tries) seeds are generated for accuracy calculation
     seeds = np.random.randint(0, 10000, size=args.num_tries).tolist()
     print(f"seeds: {seeds}")
 
@@ -818,33 +750,16 @@ def gridsearch_helper(param_names, param_lists, args):
             accs_val = []
             accs_train = []
 
-            ### TODO: Add dictionary
-            # args.ts_setting = d['ts_setting']
-
-            ### Sth like this:
-            
-            # attributes = ["ts_setting", "another_setting", "hidden_dim"]  # List of keys to map
-
-            # for attr in attributes:
-            #     setattr(args, attr, d[attr])  # Equivalent to args.ts_setting = d['ts_setting']
-
             for k in range(len(params)):
                 setattr(args, param_names[k], params[k])
-
-            # args.ts_setting = ts_set
-            # args.n_heads = s
-            # args.set_transf_hidden = h
 
             for j in range(len(seeds)):
                 params_with_values = [f"{param_names[x]}={params[x]}" for x in range(len(params))]
 
-                # print(f"\nTraining {i+1}/{len(iteration_list)}, Seed {j+1}/{len(seeds)}: setting={ts_set}, set_heads={s}, hidden_dim={h}")
                 print(f"\nTraining {i+1}/{len(iteration_list)}, Seed {j+1}/{len(seeds)}:",
                         f"{', '.join(params_with_values)}")
-                    # set_seed(seeds[j])
                 utils.seed_everything(seeds[j])
 
-                # torch.cuda.empty_cache()
                 if not args.tr_acc:
                     acc_test, acc_val = train(args)
                 else:
@@ -855,13 +770,6 @@ def gridsearch_helper(param_names, param_lists, args):
                 
                 if args.tr_acc:
                     accs_train.append(acc_train)
-            """ 
-            # Calculate the average and the maximum deviation of the different seeds
-            avg_acc_test = np.mean(accs_test)
-            dev_acc_test = np.max(np.abs(accs_test - avg_acc_test))
-            avg_acc_val = np.mean(accs_val)
-            dev_acc_val = np.max(np.abs(accs_val - avg_acc_val)) """
-
 
             print("accs_test")
             print(accs_test)
@@ -890,13 +798,16 @@ def gridsearch_helper(param_names, param_lists, args):
             else:
                 file.write(f"{','.join(str(p) for p in params)},{acc_val},{acc_test},{acc_train}\n")
                 
-            # file.write(f"{ts_set},{s},{h},{acc_val},{acc_test}\n")
             file.flush()
             print(f"seeds: {seeds}")
             print(f"accs_test: {accs_test}")
             print(f"accs_val: {accs_val}")
             
 def set_seed(seed):
+    """
+    Sets a seed for every library. Also used to generate further seeds if a model will be
+    evaluated over a few runs using the same parameter configuration. 
+    """
     if seed == -1:  
         seed = 42
 
@@ -916,8 +827,6 @@ def empty_gpu_memory():
 def main():
     args = get_args()
     if args.mode == 'train':
-        # torch.cuda.empty_cache()
-        # set_seed(args.seed)
         utils.seed_everything(args.seed)
         train(args)
     elif args.mode == 'test':

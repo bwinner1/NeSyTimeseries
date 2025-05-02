@@ -152,6 +152,11 @@ def create_writer(args):
     return writer
 
 def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
+    """
+    Plots the classic SAX plot with the original time series and the SAX means
+    for each segment. 
+    """
+
     time_steps = time_series.shape[0]
     increment = int(time_steps / concepts.shape[0])
 
@@ -192,12 +197,6 @@ def plot_SAX(ax, time_series, concepts, saliencies, alphabet):
     sorted_letters = [letters[i] for i in sorted_indices]
     sorted_hlines = [hlines[i] for i in sorted_indices]
     
-    # print(alphabet)
-    # print(sorted_indices)
-    # print(sorted_letters)
-    # print(sorted_hlines)
-
-    # ax.legend(handles=sorted_hlines, labels=sorted_letters)
     ax.legend(handles=sorted_hlines, labels=sorted_letters, loc="center left", bbox_to_anchor=(1, 0.5))
 
 
@@ -216,7 +215,6 @@ def create_top_expls(concept, concepts, saliencies, column_names, amount = 5):
         concepts = np.array(concepts)
     elif(concept == "tsfresh"):
         concepts = np.round(concepts, 2)[0]
-        
 
     # Get the indices of the 10 largest values
     worst_indices = np.argsort(importance)[:amount]  # Sort indices, take the first 10 for ascending order
@@ -260,9 +258,6 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
     fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(figsize1))
     fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(figsize2))
 
-    # print("saliencies:")
-    # print(saliencies)
-    # print(saliencies.shape) # (1, 462)
 
     ### Plot actual samples
     plot_SAX(ax1, time_series, concepts, saliencies, alphabet)
@@ -285,8 +280,6 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
                 ax2.text(j, i, f"{value}", ha='center', va='center', color='white')
 
     # Set tick labels
-    # print(f"saliencies: {saliencies.shape}")
-    # print(f"alphabet: {alphabet}")
     ax2.set_xticks(np.arange(saliencies.shape[1]))
     ax2.set_yticks(np.arange(saliencies.shape[0]))
     ax2.set_xticklabels(alphabet)
@@ -305,19 +298,18 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
 
 
 def plot_expl_tsfresh(time_series, exp, true_label, pred_label, top_features, save_plot=False, path=""):
-    """Plots a figure of a time series sample.
-      Moreover returns a table with most important featues"""
+    """
+    Plots a figure of a time series sample. Moreover it also returns a table with most important featues
+    """
  
     # Plot samples
     fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
     ax1.plot(time_series)
-    # print(saliencies.shape) # (1, 462)
 
     # Normalize the importance values for coloring
     norm = plt.Normalize(vmin=-1, vmax=1)
     cmap = plt.cm.viridis
 
-    # fig2, ax2 = plt.subplots(nrows=2, ncols=1, figsize=(12, 5))
     fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(9, 2))
     fig3, ax3 = plt.subplots(nrows=1, ncols=1, figsize=(9, 2))
 
@@ -328,8 +320,6 @@ def plot_expl_tsfresh(time_series, exp, true_label, pred_label, top_features, sa
     worst_concepts = exp['worst_concepts']
     worst_importance = exp['worst_importance']
 
-    # best_table = ax2[0].table(cellText=np.column_stack((best_columns, best_concepts, best_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
-    # worst_table = ax2[1].table(cellText=np.column_stack((worst_columns, worst_concepts, worst_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
     best_table = ax2.table(cellText=np.column_stack((best_columns, best_concepts, best_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
     worst_table = ax3.table(cellText=np.column_stack((worst_columns, worst_concepts, worst_importance)), colLabels=["Feature", "Feature Value", "Importance"], loc="center", cellLoc='center')
     
@@ -354,51 +344,29 @@ def plot_expl_tsfresh(time_series, exp, true_label, pred_label, top_features, sa
         # Color the cells based on importance
         cell.set_facecolor(cmap(norm(worst_importance[i-1])))
 
-    # Turn off axis and display the table
-    # ax2[0].axis('off')
-    # ax2[1].axis('off')
     ax2.axis('off')
     ax3.axis('off')
 
-
-    # fig2.tight_layout()
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])  # Empty array for the colorbar
-    # plt.colorbar(sm, ax=ax2[1], orientation="horizontal", fraction=0.02, pad=0.04)
     fig2.colorbar(sm, ax=ax2, orientation="horizontal", fraction=0.02, pad=0.04)
     fig3.colorbar(sm, ax=ax3, orientation="horizontal", fraction=0.02, pad=0.04)
     
     fig1.suptitle(f"True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
     fig2.suptitle(f"Top {top_features} Features with Positive Prediction Contributions; True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
     fig3.suptitle(f"Top {top_features} Features with Negative Prediction Contributions; True Class: {true_label:.0f}; Pred Class: {pred_label}", fontsize=titlelabel_fontsize)
-    # if save_plot:
-    #     plt.savefig(f'xai/tsfresh/tsfresh_plot_{get_current_time()}.pdf')
 
     if save_plot:
-        # print("\nsave_plot")
-        # print(fig1)
-        # print(fig2)
-        # print(path)
         fig1.savefig(f'{path}/{get_current_time()}_fig1.pdf', transparent=True)
         fig2.savefig(f'{path}/{get_current_time()}_fig2.pdf', transparent=True)
         fig3.savefig(f'{path}/{get_current_time()}_fig3.pdf', transparent=True)
     
     return fig1, fig2, fig3
 
-# def plot_expl_vqshape(time_series, concepts, output, exp, true_label, pred_label, save_plot=False, path=""):
-# def plot_expl_vqshape(vqshape_model, time_series, save_plot=False, path=""):
-# def plot_expl_vqshape(time_series, save_plot=False, path=""):
-
 def plot_expl_vqshape(dict, save_plot=False, path=""):
-    # Plot samples
-    # fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
-    # ax1.plot(time_series)
-
-    # vqshape = model.vqshapeTransformer()
-
-    # output_dict, loss_dict = vqshape.transform(time_series, mode='evaluate')
-    # output_dict, loss_dict = vqshape_model.transform(time_series, mode='evaluate')
-# def visualize_shapes(attribute_dict, num_sample=10, num_s_sample=25, title=''):
+    """
+    Plot vqshape explanations using the default vqshape method.
+    """
 
     fig1, fig2 = visualize_shapes(dict, num_sample=4, num_s_sample=30)
     code = torch.tensor(dict["code_idx"]).to(torch.int64)
@@ -414,15 +382,10 @@ def plot_expl_vqshape(dict, save_plot=False, path=""):
 
     # For more information, look at vqshape_utils.py
 
-    # visualize_shapes: returns a two figs:  
+    # visualize_shapes: returns two figs:  
     #  1) visualizing time series with 64 shapes
     #  2) visualizing each decoded shape
-    # def visualize_shapes(attribute_dict, num_sample=10, num_s_sample=25, title=''):
 
-    # plot_code_heatmap: returns a fig with a 8x8 heatmap of 64 shapes
-        # def plot_code_heatmap(code_indices, num_codes, title=''):
-
-    
 
 def create_expl_images(img, pred_attrs, table_expl_attrs, img_expl, true_class_name, pred_class_name, xticklabels):
     """
@@ -519,7 +482,7 @@ def plot_confusion_matrix(y_true, y_pred, classes, normalize=True, title=None,
 
 def update_feature_dict(f_dict, features, pred = 0):
     """
-    Takes a feature dict and updates the counts for all of the given features
+    Takes a feature dict and updates the counts for all of the given features.
     """
 
     for f in features:
