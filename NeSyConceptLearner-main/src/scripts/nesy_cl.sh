@@ -3,18 +3,16 @@
 # CUDA DEVICE ID
 DEVICE=$1
 NUM=$2
-# MODE=$3
 MODEL="ts-concept-learner-$NUM"
 
 #-------------------------------------------------------------------------------#
-# CLEVR-Hans3
 
 # CUDA_LAUNCH_BLOCKING=1 
 CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl.py --dataset p2s \
-    --mode gridsearch --num-tries 5 \
-    --concept sax --n-segments 32 --alphabet-size 64 --n-heads 4 --set-transf-hidden 128 \
+    --mode train --num-tries 5 \
+    --concept sax --n-segments 8 --alphabet-size 4 --n-heads 4 --set-transf-hidden 128 \
     --epochs 50 --name $MODEL --lr 0.0001 --batch-size 64 --seed 42 --num-workers 0 \
-    # --explain --save-pdf
+    --explain --save-pdf
 
 
 # --explain --explain-all --save-pdf

@@ -251,8 +251,14 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
     alphabet = "".join((string.ascii_letters, string.digits))
     alphabet = list(alphabet[:saliencies.shape[1]])
 
-    fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(len(alphabet)*0.5, saliencies.shape[0]*0.18))
-    fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(len(alphabet)*0.6 , saliencies.shape[0]*0.25))
+    figsize1 = (len(alphabet)*0.5, saliencies.shape[0]*0.18)
+    figsize2 = (len(alphabet)*0.6 , saliencies.shape[0]*0.25)
+    if len(alphabet) < 16:
+        figsize1 = (8, 4)
+        figsize2 = (8, 4)
+
+    fig1, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(figsize1))
+    fig2, ax2 = plt.subplots(nrows=1, ncols=1, figsize=(figsize2))
 
     # print("saliencies:")
     # print(saliencies)
@@ -653,7 +659,8 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                 if not last_sample:
                     writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
                     writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_B", fig2, epoch)
-                    writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_C", fig3, epoch)
+                    if args.concept == "tsfresh":
+                        writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_C", fig3, epoch)
             
 
 def write_global_expl(concept, split, feature_split, features, pred_class):

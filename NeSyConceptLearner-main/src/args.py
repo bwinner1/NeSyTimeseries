@@ -60,7 +60,7 @@ def get_args():
 
     
     parser.add_argument('--concept', choices=["sax", "tsfresh", "vqshape"],
-                        help='concept that should be applied to times series' )
+                        help='concept summarizer that should be applied to the input' )
     
     # xai params
     parser.add_argument(
