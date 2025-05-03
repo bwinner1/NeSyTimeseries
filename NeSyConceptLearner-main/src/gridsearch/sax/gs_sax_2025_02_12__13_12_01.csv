@@ -1,2 +1,0 @@
-n_segments,alphabet_size,n_heads,set_transf_hidden,val_acc,test_acc
-32,10,4,128,93.47 ± 0.23,93.87 ± 0.00

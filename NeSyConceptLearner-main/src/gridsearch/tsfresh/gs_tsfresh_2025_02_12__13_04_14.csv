@@ -1,2 +1,0 @@
-ts_setting,n_heads,set_transf_hidden,val_acc,test_acc
-slow,4,128,99.77 ± 0.23,97.45 ± 1.68
