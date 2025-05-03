@@ -10,14 +10,13 @@ MODEL="ts-concept-learner-$NUM"
 # CUDA_LAUNCH_BLOCKING=1 
 CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl.py --dataset p2s \
     --mode train --num-tries 5 \
-    --concept sax --n-segments 8 --alphabet-size 4 --n-heads 4 --set-transf-hidden 128 \
+    --concept sax --n-segments 32 --alphabet-size 32 --n-heads 4 --set-transf-hidden 128 \
     --epochs 50 --name $MODEL --lr 0.0001 --batch-size 64 --seed 42 --num-workers 0 \
-    --explain
 
 # In the following, the different args with default values for each summarizer are shown.
 # More detailed explanations for each argument can be found in args.py
 
-# ### Exaplanations:
+# ### Explanations:
 # Enable xai explanations (needed for further xai functions)
 # --explain
 # Save xai outputs as pdfs, in folder xai
@@ -55,7 +54,12 @@ CUDA_VISIBLE_DEVICES=$DEVICE python nesy_cl.py --dataset p2s \
 
 
 # ### VQShape
+# vqshape doesn't support TensorBoard, therefore if xai is needed,
+# the output has to be saved into a pdf
 # --concept vqshape --n-heads 4 --set-transf-hidden 32 \
 # --epochs 50 --name $MODEL --lr 0.0025 --batch-size 64 --seed 42 --num-workers 0 \
+# --explain --save-pdf
 
-# --no-cuda  # for cpu usage
+
+# for cpu usage, if gpu is not available (much slower)
+# --no-cuda  

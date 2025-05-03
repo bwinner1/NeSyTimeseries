@@ -40,9 +40,7 @@ def get_confusion_from_ckpt(net, test_loader, criterion, args, datasplit, writer
 
     # Generate Confusion Matrix
     if writer is not None:
-        # TODO: Delete the following overwrite. Instead overwrite the function later 
         args.classes = np.arange(2)
-#        args.classes = np.arange(args.n_classes)
 
         utils.plot_confusion_matrix(true, pred, normalize=True, classes=args.classes,
                               sFigName=os.path.join(writer.log_dir, 'Confusion_matrix_normalize_{}.pdf'.format(
@@ -143,8 +141,8 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
     labels_all = []
 
 
-    # Dictionary to save importance statistics over all samples
-    # 
+    # Dictionary to save importance statistics over all samples 
+    # Only useful for tsfresh global importance
     if args.explain_all:
         args.best_features = [{}, {}]
         args.worst_features = [{}, {}]
@@ -167,6 +165,7 @@ def run(net, loader, optimizer, criterion, split, writer, args, train=False, plo
 
         loss = criterion(output_cls, labels)
 
+        # When using XIL, calculate the importance values of the summarizer
         if args.xil:
             saliencies = utils.generate_intgrad_captum_table(net.set_cls, output_attr, preds)
             loss = calc_xil_loss(loss, masks, saliencies, args.xil_weight)
@@ -287,7 +286,6 @@ def train(args):
             concepts_test = torch.load(f'{file}/tsfresh_{args.ts_setting}_test.pt')
             column_labels = torch.load(f'{file}/tsfresh_{args.ts_setting}_column_labels.pt')
 
-            # TODO: Delete the following, should be irrelevant after saving the scaler everything again
             scaler_path = f'{file}/tsfresh_{args.ts_setting}_scaler.pt'
             if os.path.exists(scaler_path):
                 scaler = torch.load(scaler_path)
@@ -333,16 +331,9 @@ def train(args):
             concepts_test = vqshape_model.transform(ts_test)
 
             if args.explain and args.save_pdf:
-                # TODO: Make sure to interpolate time series if needed
                 dict = vqshape_model.transform(ts_test, mode="evaluate")[0]
-                print("dict stuff:")
-                # print(dict)
-                print(dict.keys())
-                print(dict["s_true"].shape)
-                path = utils.prepare_path("vqshape")
+                path = utils.prepare_xai_path("vqshape")
                 utils.plot_expl_vqshape(dict, args.save_pdf, path)
-            
-        print("vqshape DONE")
         empty_gpu_memory()
 
     else:
@@ -426,7 +417,6 @@ def train(args):
         [p for name, p in net.named_parameters() if p.requires_grad and 'set_cls' in name], lr=args.lr
     )
     criterion = nn.CrossEntropyLoss()
-    #criterion = nn.BCEWithLogitsLoss()
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=0.000001)
 
     torch.backends.cudnn.benchmark = True
@@ -479,10 +469,6 @@ def train(args):
     acc_val = get_confusion_from_ckpt(net, val_loader, criterion, args=args, datasplit='val_best',
                             writer=writer)
 
-
-    # plot expls
-    # TODO: Set values back to plot=True
-
     run(net, train_loader, optimizer, criterion, split='train_best', args=args,
         writer=writer, train=False, plot=plot, epoch=0)
     run(net, val_loader, optimizer, criterion, split='val_best', args=args,
@@ -500,108 +486,6 @@ def train(args):
                         writer=writer)
         return acc_test, acc_val, acc_train
         
-
-
-def test(args):
-
-    print(f"\n\n{args.name} seed {args.seed}\n")
-    if args.dataset == "clevr-hans-state":
-        dataset_val = data.CLEVR_HANS_EXPL(
-            args.data_dir, "val", lexi=True, conf_vers=args.conf_version
-        )
-        dataset_test = data.CLEVR_HANS_EXPL(
-            args.data_dir, "test", lexi=True, conf_vers=args.conf_version
-        )
-    else:
-        print("Wrong dataset specifier")
-        exit()
-
-    args.n_classes = dataset_val.n_classes
-    args.class_weights = torch.ones(args.n_classes)/args.n_classes
-    args.classes = np.arange(args.n_classes)
-    args.category_ids = dataset_val.category_ids
-
-    test_loader = data.get_loader(
-        dataset_test,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        shuffle=False,
-    )
-    val_loader = data.get_loader(
-        dataset_val,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        shuffle=False,
-    )
-
-    criterion = nn.CrossEntropyLoss()
-
-    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_slots=args.n_slots, n_iters=args.n_iters_slot_att,
-                             n_input_dim=args.n_attr, n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden,
-                             category_ids=args.category_ids, device=args.device)
-    net = net.to(args.device)
-
-    checkpoint = torch.load(args.fp_ckpt)
-    net.load_state_dict(checkpoint['weights'])
-    net.eval()
-    print("\nModel loaded from checkpoint for final evaluation\n")
-
-    acc = get_confusion_from_ckpt(net, val_loader, criterion, args=args, datasplit='val_best', writer=None)
-    print(f"\nVal. accuracy: {(100*acc):.2f}")
-    acc = get_confusion_from_ckpt(net, test_loader, criterion, args=args, datasplit='test_best', writer=None)
-    print(f"\nTest accuracy: {(100*acc):.2f}")
-
-
-def plot(args):
-
-    print(f"\n\n{args.name} seed {args.seed}\n")
-
-    # no positional info per object
-    if args.dataset == "clevr-hans-state":
-        dataset_val = data.CLEVR_HANS_EXPL(
-            args.data_dir, "val", lexi=True, conf_vers=args.conf_version
-        )
-        dataset_test = data.CLEVR_HANS_EXPL(
-            args.data_dir, "test", lexi=True, conf_vers=args.conf_version
-        )
-    else:
-        print("Wrong dataset specifier")
-        exit()
-
-    args.n_classes = dataset_val.n_classes
-    args.class_weights = torch.ones(args.n_classes)/args.n_classes
-    args.classes = np.arange(args.n_classes)
-    args.category_ids = dataset_val.category_ids
-
-    test_loader = data.get_loader(
-        dataset_test,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        shuffle=False,
-    )
-
-    # load best model for final evaluation
-    net = model.NeSyConceptLearner(n_classes=args.n_classes, n_slots=args.n_slots, n_iters=args.n_iters_slot_att,
-                             n_input_dim=args.n_attr, n_set_heads=args.n_heads, set_transf_hidden=args.set_transf_hidden,
-                             category_ids=args.category_ids, device=args.device)
-    net = net.to(args.device)
-
-    checkpoint = torch.load(args.fp_ckpt)
-    net.load_state_dict(checkpoint['weights'])
-    net.eval()
-    print("\nModel loaded from checkpoint for final evaluation\n")
-
-    save_dir = args.fp_ckpt.split('model_epoch')[0]+'figures/'
-    try:
-        os.makedirs(save_dir)
-    except FileExistsError:
-        # directory already exists
-        pass
-
-    # change plotting function in utils in order to visualize explanations
-    assert args.conf_version == 'CLEVR-Hans3'
-    utils.save_expls(net, test_loader, "test", save_path=save_dir)
-
 def apply_net(input, net, args):
     """
     Apply given network. Depending on the chosen symbolizer, 

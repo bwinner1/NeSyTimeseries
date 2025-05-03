@@ -81,7 +81,7 @@ def get_args():
     parser.add_argument('--set-transf-hidden', type=int,
                         help='number of hidden dimensions for set transformer')
     parser.add_argument('--tr-acc', action="store_true",
-                        help='if training accuracy should be printed as well')
+                        help='if training accuracy should be given in the results as well')
     
 
 

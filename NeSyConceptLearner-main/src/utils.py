@@ -263,7 +263,7 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
     plot_SAX(ax1, time_series, concepts, saliencies, alphabet)
 
     ### Plot heatmap visualization
-    heatmap = ax2.imshow(saliencies, cmap='viridis', aspect='auto', vmin=-1.0, vmax=1.0) # TODO: or try out plasma
+    heatmap = ax2.imshow(saliencies, cmap='viridis', aspect='auto', vmin=-1.0, vmax=1.0)
         # ax2.set_title("Table values have been multiplied by 100.")
 
     # Add colorbar to show the saliency scale
@@ -274,8 +274,6 @@ def plot_expl_SAX(time_series, concepts, output, saliencies, true_label, pred_la
         # Annotate the heatmap with letters and saliency values
         for i in range(saliencies.shape[0]):  # Rows
             for j in range(saliencies.shape[1]):  # Columns
-                # TODO: Added short fix to avoid negative zeros, maybe move this somewhere else
-                # value = f"{saliencies[i, j]:.2f}"  # Format saliency value to 2 decimal places
                 value = f"{saliencies[i, j]:.2f}"  # Format saliency value to 2 decimal places
                 ax2.text(j, i, f"{value}", ha='center', va='center', color='white')
 
@@ -484,18 +482,19 @@ def update_feature_dict(f_dict, features, pred = 0):
     """
     Takes a feature dict and updates the counts for all of the given features.
     """
-
     for f in features:
-        # print(f"f_dict: {f_dict}" )
-        # print(f"f_dict[pred]: {f_dict[pred]}" )
-        # print(f"f_dict[pred].get(f): {f_dict[pred].get(f)}" )
         if f_dict[pred].get(f) is not None:
             f_dict[pred][f] += 1
         else:
             f_dict[pred][f] = 1
     pass
 
-def prepare_path(concept):
+def prepare_xai_path(concept):
+    """
+    Prepares the path to the corresponding xai summarizer folder. Moreover the path 
+    includes the current time stamp, useful to group results together.
+    """
+
     start_time = get_current_time()
     path = f"xai/{concept}/{start_time}"
     os.makedirs(path)
@@ -511,10 +510,7 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
     path = ""
 
     if args.save_pdf:
-        path = prepare_path(args.concept)
-        # start_time = get_current_time()
-        # path = f"xai/{args.concept}/{start_time}"
-        # os.makedirs(path)
+        path = prepare_xai_path(args.concept)
 
     for i, loaded_data in enumerate(data_loader):
 
@@ -534,46 +530,28 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
         # get explanations of set classifier
         table_saliencies = generate_intgrad_captum_table(net.set_cls, output_attr, preds)
 
-        # For vqshape only look at global explainability. Therefore use whole dataset
-        # if args.concept == "vqshape":
-        #     writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
-        #     writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_B", fig2, epoch)
-        #     return
-
+        
         # Add first 10 time series with their explanations to TensorBoard
         for sample_id, (sample, concept, output, table_expl, true_label, pred_label) in enumerate(zip(
                 samples, concepts, output_attr, table_saliencies, labels, preds
         )):
             
             concepts = concept.cpu().numpy()
-            # print(f"concepts.shape: {concepts.shape}")
-
             table_expls = table_expl.cpu().numpy()
-            # print(f"table_expls.shape: {table_expls.shape}")
 
             # Create explanations
             if(args.concept == "sax"):
                 column_labels = [f"seg_{i}" for i in range(concepts.shape[0])]
-                # TODO: Delete the following if no one-hot encoding is used
                 table_expls_squeezed = np.max(table_expls, 1)
-                # concepts = np.expand_dims(concepts, 0)
             elif args.concept == "tsfresh":
                 column_labels = args.column_labels
                 table_expls = table_expls[0]
                 table_expls_squeezed = table_expls
             elif args.concept == "vqshape":
+                # For vqshape we only look at global explainability. 
+                # Therefore it is not considered here
                 return
-                """
-                if sample_id < 1:
-                    fig1 = plot_expl_vqshape(sample.cpu().numpy(),
-                        concepts,
-                        output.cpu().numpy(),   
-                        table_expls,
-                        true_label, pred_label)
-
-                    writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
-                return
-                """
+            
             if args.explain_all or args.concept == "tsfresh":
                 # Amount of top features to consider for global explainability
                 top_features = 5
@@ -604,20 +582,6 @@ def write_expls(net, data_loader, tagname, epoch, writer, args):
                         dict_exp,
                         true_label, pred_label, top_features, 
                         last_sample, path)
-                    
-                """
-                # elif (args.concept == "vqshape"):
-                #     pass
-                    # fig1, fig2 = plot_expl_vqshape(sample.cpu().numpy(),
-                    #         concepts,
-                    #         output.cpu().numpy(),
-                    #         dict_exp,
-                    #         true_label, pred_label)
-                    
-                
-                # writer.add_figure(f"{tagname}_{sample_id}_tsfresh_A", fig1, epoch)
-                # writer.add_figure(f"{tagname}_{sample_id}_tsfresh_B", fig2, epoch)
-                """
                 
                 if not last_sample:
                     writer.add_figure(f"{tagname}_{sample_id}_{args.concept}_A", fig1, epoch)
@@ -630,93 +594,9 @@ def write_global_expl(concept, split, feature_split, features, pred_class):
     """
     Writes the best/worst features into a csv file for a given predicted class (0 or 1)
     """
-    # print(f"concept: {concept}")
-    # print(f"split: {split}")
-    # print(f"feature_split: {feature_split}")
 
-
-    filename_best = f"xai/{concept}/{split}/{feature_split}_pred{pred_class}_{get_current_time()}.csv"
-    with open(filename_best, "a") as file_best:
+    filename = f"xai/{concept}/{split}/{feature_split}_pred{pred_class}_{get_current_time()}.csv"
+    with open(filename, "a") as file_best:
         file_best.write("feature_name;count\n")
         for f, c in features[pred_class].items():
             file_best.write(f"{f};{c}\n")
-
-def save_expls(net, data_loader, tagname, save_path):
-    """
-    Stores the explanation plots at the specified location.
-    (Is used only in plot(), which currently isn't being used.)
-    """
-
-    xticklabels = ['Sphere', 'Cube', 'Cylinder',
-                   'Large', 'Small',
-                   'Rubber', 'Metal',
-                   'Cyan', 'Blue', 'Yellow', 'Purple', 'Red', 'Green', 'Gray', 'Brown']
-
-    net.eval()
-
-    for i, sample in enumerate(data_loader):
-        # input is either a set or an image
-        imgs, target_set, img_class_ids, img_ids, _, _ = map(lambda x: x.cuda(), sample)
-        img_class_ids = img_class_ids.long()
-
-        # forward evaluation through the network
-        output_cls, output_attr = net(imgs)
-        _, preds = torch.max(output_cls, 1)
-
-        # # convert sorting gt target set and gt table explanations to match the order of the predicted table
-        # target_set, match_ids = utils.hungarian_matching(output_attr.to('cuda'), target_set)
-        # # table_expls = table_expls[:, match_ids][range(table_expls.shape[0]), range(table_expls.shape[0])]
-
-        # get explanations of set classifier
-        table_saliencies = generate_intgrad_captum_table(net.set_cls, output_attr, preds)
-        # remove xyz coords from tables for conf_3
-        output_attr = output_attr[:, :, 3:]
-        table_saliencies = table_saliencies[:, :, 3:]
-
-        # get the ids of the two objects that receive the maximal importance, i.e. most important for the classification
-        max_expl_obj_ids = table_saliencies.max(dim=2)[0].topk(2)[1]
-
-        # get attention masks
-        attns = net.img2state_net.slot_attention.attn
-        # reshape attention masks to 2D
-        attns = attns.reshape((attns.shape[0], attns.shape[1], int(np.sqrt(attns.shape[2])),
-                               int(np.sqrt(attns.shape[2]))))
-
-        # concatenate the visual explanation of the top two objects that are most important for the classification
-        img_saliencies = torch.zeros(attns.shape[0], attns.shape[2], attns.shape[3])
-        batch_size = attns.shape[0]
-        for i in range(max_expl_obj_ids.shape[1]):
-            img_saliencies += attns[range(batch_size), max_expl_obj_ids[range(batch_size), i], :, :].detach().cpu()
-
-        num_stored_imgs = 0
-        relevant_ids = [618, 154, 436, 244, 318, 85]
-
-        for img_id, (img, gt_table, pred_table, table_expl, img_expl, true_label, pred_label, imgid) in enumerate(zip(
-                imgs, target_set, output_attr.detach().cpu().numpy(),
-                table_saliencies.detach().cpu().numpy(), img_saliencies.detach().cpu().numpy(),
-                img_class_ids, preds, img_ids
-        )):
-            if imgid in relevant_ids:
-                num_stored_imgs += 1
-                # norm img expl to be between 0 and 255
-                img_expl = (img_expl - np.min(img_expl))/(np.max(img_expl) - np.min(img_expl))
-                # resize to img size
-                img_expl = np.array(Image.fromarray(img_expl).resize((img.shape[1], img.shape[2]), resample=1))
-
-                # unnormalize images
-                img = img / 2. + 0.5  # Rescale to [0, 1].
-                img = np.array(transforms.ToPILImage()(img.cpu()).convert("RGB"))
-
-                np.save(f"{save_path}{tagname}_{imgid}.npy", img)
-                np.save(f"{save_path}{tagname}_{imgid}_imgexpl.npy", img_expl)
-                np.save(f"{save_path}{tagname}_{imgid}_table.npy", pred_table)
-                np.save(f"{save_path}{tagname}_{imgid}_tableexpl.npy", table_expl)
-
-                fig = create_expl_images(img, pred_table, table_expl, img_expl,
-                                         true_label, pred_label, xticklabels)
-                plt.savefig(f"{save_path}{tagname}_{imgid}.png")
-                plt.close(fig)
-
-                if num_stored_imgs == len(relevant_ids):
-                    exit()
-

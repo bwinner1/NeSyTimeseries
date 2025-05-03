@@ -26,269 +26,6 @@ from vqshape.pretrain import LitVQShape
 from matplotlib import colormaps
 from sklearn.preprocessing import StandardScaler
 
-class SlotAttention(nn.Module):
-    """
-    Implementation from https://github.com/lucidrains/slot-attention by lucidrains.
-    """
-    def __init__(self, num_slots, dim, iters=3, eps=1e-8, hidden_dim=128):
-        super().__init__()
-        self.num_slots = num_slots
-        self.iters = iters
-        self.eps = eps
-        self.scale = dim ** -0.5
-
-        self.slots_mu = nn.Parameter(torch.randn(1, 1, dim))
-        # self.slots_log_sigma = nn.Parameter(torch.randn(1, 1, dim))
-        self.slots_log_sigma = nn.Parameter(torch.randn(1, 1, dim)).abs().to(device='cuda')
-
-        self.project_q = nn.Linear(dim, dim)
-        self.project_k = nn.Linear(dim, dim)
-        self.project_v = nn.Linear(dim, dim)
-
-        self.gru = nn.GRUCell(dim, dim)
-
-        hidden_dim = max(dim, hidden_dim)
-
-        self.mlp = nn.Sequential(
-            nn.Linear(dim, hidden_dim),
-            nn.ReLU(inplace=True),
-            nn.Linear(hidden_dim, dim)
-        )
-
-        self.norm_inputs = nn.LayerNorm(dim, eps=1e-05)
-        self.norm_slots = nn.LayerNorm(dim, eps=1e-05)
-        self.norm_mlp = nn.LayerNorm(dim, eps=1e-05)
-
-        # dummy initialisation
-        self.attn = 0
-
-    def forward(self, inputs, num_slots=None):
-        b, n, d = inputs.shape
-        n_s = num_slots if num_slots is not None else self.num_slots
-
-        mu = self.slots_mu.expand(b, n_s, -1)
-        sigma = self.slots_log_sigma.expand(b, n_s, -1)
-        slots = torch.normal(mu, sigma)
-
-        inputs = self.norm_inputs(inputs)
-        k, v = self.project_k(inputs), self.project_v(inputs)
-
-        for _ in range(self.iters):
-            slots_prev = slots
-
-            slots = self.norm_slots(slots)
-            q = self.project_q(slots)
-
-            dots = torch.einsum('bid,bjd->bij', q, k) * self.scale
-            attn = dots.softmax(dim=1) + self.eps
-            attn = attn / attn.sum(dim=-1, keepdim=True)
-
-            updates = torch.einsum('bjd,bij->bid', v, attn)
-
-            slots = self.gru(
-                updates.reshape(-1, d),
-                slots_prev.reshape(-1, d)
-            )
-
-            slots = slots.reshape(b, -1, d)
-            slots = slots + self.mlp(self.norm_mlp(slots))
-
-        self.attn = attn
-
-        return slots
-
-
-class SlotAttention_encoder(nn.Module):
-    """
-    Slot attention encoder for CLEVR as in Locatello et al. 2020 according to the set prediction architecture.
-    """
-    def __init__(self, in_channels, hidden_channels):
-        """
-        Builds the Encoder for the set prediction architecture
-        :param in_channels: Integer, input channel dimensions to encoder
-        :param hidden_channels: Integer, hidden channel dimensions within encoder
-        """
-        super(SlotAttention_encoder, self).__init__()
-        self.network = nn.Sequential(
-            nn.Conv2d(in_channels, hidden_channels, (5, 5), stride=(1, 1), padding=2),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(hidden_channels, hidden_channels, (5, 5), stride=(2, 2), padding=2),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(hidden_channels, hidden_channels, (5, 5), stride=(2, 2), padding=2),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(hidden_channels, hidden_channels, (5, 5), stride=(1, 1), padding=2),
-            nn.ReLU(inplace=True),
-        )
-
-    def forward(self, x):
-        return self.network(x)
-
-
-class MLP(nn.Module):
-    """
-    MLP for CLEVR as in Locatello et al. 2020 according to the set prediction architecture.
-    """
-    def __init__(self, hidden_channels):
-        """
-        Builds the MLP
-        :param hidden_channels: Integer, hidden channel dimensions within encoder, is also equivalent to the input
-        channel dims here.
-        """
-        super(MLP, self).__init__()
-        self.network = nn.Sequential(
-            nn.Linear(hidden_channels, hidden_channels),
-            nn.ReLU(inplace=True),
-            nn.Linear(hidden_channels, hidden_channels),
-        )
-
-    def forward(self, x):
-        return self.network(x)
-
-
-def build_grid(resolution):
-    """
-    Builds the grid for the Posisition Embedding.
-    :param resolution: Tuple of Ints, in the dimensions of the latent space of the encoder.
-    :return: 2D Float meshgrid representing th x y position.
-    """
-    ranges = [np.linspace(0., 1., num=res) for res in resolution]
-    grid = np.meshgrid(*ranges, sparse=False, indexing="ij")
-    grid = np.stack(grid, axis=-1)
-    grid = np.reshape(grid, [resolution[0], resolution[1], -1])
-    grid = np.expand_dims(grid, axis=0)
-    grid = grid.astype(np.float32)
-    return np.concatenate([grid, 1.0 - grid], axis=-1)
-
-
-class SoftPositionEmbed(nn.Module):
-    """
-    Adds soft positional embedding with learnable projection.
-    """
-    def __init__(self, hidden_size, resolution, device="cuda"):
-        """Builds the soft position embedding layer.
-        Args:
-          hidden_size: Size of input feature dimension.
-          resolution: Tuple of integers specifying width and height of grid.
-          device: String specifiying the device, cpu or cuda
-        """
-        super().__init__()
-        self.dense = nn.Linear(4, hidden_size)
-        self.grid = torch.FloatTensor(build_grid(resolution))
-        self.grid = self.grid.to(device)
-        self.resolution = resolution[0]
-        self.hidden_size = hidden_size
-
-    def forward(self, inputs):
-        return inputs + self.dense(self.grid).view((-1, self.hidden_size, self.resolution, self.resolution))
-
-
-# class SlotAttention_classifier(nn.Module):
-#     """
-#     The classifier of the set prediction architecture of Locatello et al. 2020
-#     """
-#     def __init__(self, in_channels, out_channels):
-#         """
-#         Builds the classifier for the set prediction architecture.
-#         :param in_channels: Integer, input channel dimensions
-#         :param out_channels: Integer, output channel dimensions
-#         """
-#         super(SlotAttention_classifier, self).__init__()
-#         self.network = nn.Sequential(
-#             nn.Linear(in_channels, in_channels),
-#             nn.ReLU(inplace=True),
-#             nn.Linear(in_channels, out_channels),
-#             nn.Sigmoid()
-#         )
-
-#     def forward(self, x):
-#         return self.network(x)
-
-
-# class SlotAttention_model(nn.Module):
-#     """
-#     The set prediction slot attention architecture for CLEVR as in Locatello et al 2020.
-#     """
-#     def __init__(self, n_slots, n_iters, n_attr, category_ids,
-#                  in_channels=3,
-#                  encoder_hidden_channels=64,
-#                  attention_hidden_channels=128,
-#                  device="cuda"):
-#         """
-#         Builds the set prediction slot attention architecture.
-#         :param n_slots: Integer, number of slots
-#         :param n_iters: Integer, number of attention iterations
-#         :param n_attr: Integer, number of attributes per object to predict
-#         :param category_ids: List of Integers, specifying the boundaries of each attribute group, e.g. color
-#         attributes are variables 10 to 17
-#         :param in_channels: Integer, number of input channel dimensions
-#         :param encoder_hidden_channels: Integer, number of encoder hidden channel dimensions
-#         :param attention_hidden_channels: Integer, number of hidden channel dimensions for slot attention module
-#         :param device: String, either 'cpu' or 'cuda'
-#         """
-#         super(SlotAttention_model, self).__init__()
-#         self.n_slots = n_slots
-#         self.n_iters = n_iters
-#         self.n_attr = n_attr
-#         self.category_ids = category_ids
-#         self.n_attr = n_attr + 1  # additional slot to indicate if it is a object or empty slot
-#         self.device = device
-
-#         self.encoder_cnn = SlotAttention_encoder(in_channels=in_channels, hidden_channels=encoder_hidden_channels)
-#         self.encoder_pos = SoftPositionEmbed(encoder_hidden_channels, (32, 32), device=device)
-#         self.layer_norm = nn.LayerNorm(encoder_hidden_channels, eps=1e-05)
-#         self.mlp = MLP(hidden_channels=encoder_hidden_channels)
-#         self.slot_attention = SlotAttention(num_slots=n_slots, dim=encoder_hidden_channels, iters=n_iters, eps=1e-8,
-#                                             hidden_dim=attention_hidden_channels)
-#         self.mlp_classifier = SlotAttention_classifier(in_channels=encoder_hidden_channels, out_channels=self.n_attr)
-
-#     def forward(self, x):
-#         x = self.encoder_cnn(x)
-#         x = self.encoder_pos(x)
-#         x = torch.flatten(x, start_dim=2)
-#         x = x.permute(0, 2, 1)
-#         x = self.layer_norm(x)
-#         x = self.mlp(x)
-#         x = self.slot_attention(x)
-#         x = self.mlp_classifier(x)
-#         return x
-
-#     def _transform_attrs(self, attrs):
-#         """
-#         receives the attribute predictions and binarizes them by computing the argmax per attribute group
-#         :param attrs: 3D Tensor, [batch, n_slots, n_attrs] attribute predictions for a batch.
-#         :return: binarized attribute predictions
-#         """
-#         presence = attrs[:, :, 0]
-#         attrs_trans = attrs[:, :, 1:]
-
-#         # threshold presence prediction, i.e. where is an object predicted
-#         presence = presence < 0.5
-
-#         # flatten first two dims
-#         attrs_trans = attrs_trans.view(1, -1, attrs_trans.shape[2]).squeeze()
-#         # binarize attributes
-#         # set argmax per attr to 1, all other to 0, s.t. only zeros and ones are contained within graph
-#         # NOTE: this way it is not differentiable!
-#         bin_attrs = torch.zeros(attrs_trans.shape, device=self.device)
-#         for i in range(len(self.category_ids) - 1):
-#             # find the argmax within each category and set this to one
-#             bin_attrs[range(bin_attrs.shape[0]),
-#                       # e.g. x[:, 0:(3+0)], x[:, 3:(5+3)], etc
-#                       (attrs_trans[:,
-#                        self.category_ids[i]:self.category_ids[i + 1]].argmax(dim=1) + self.category_ids[i]).type(
-#                           torch.LongTensor)] = 1
-
-#         # reshape back to batch x n_slots x n_attrs
-#         bin_attrs = bin_attrs.view(attrs.shape[0], attrs.shape[1], attrs.shape[2] - 1)
-
-#         # add coordinates back
-#         bin_attrs[:, :, :3] = attrs[:, :, 1:4]
-
-#         # redo presence zeroing
-#         bin_attrs[presence, :] = 0
-
-#         return bin_attrs
-
 
 ############
 # Transformers #
@@ -386,6 +123,10 @@ class SetTransformer(nn.Module):
         return x.squeeze()
 
 
+############
+# Summarizers #
+############
+
 class SAXTransformer:
     def __init__(self, n_segments=8, alphabet_size=4):
         self.n_segments = n_segments
@@ -430,9 +171,6 @@ class SAXTransformer:
 
     # Print general information of dataset
     def printGeneralInfo(self, dataset, dataset_scaled, dataset_sax, increment, time_steps):
-
-        #print("self.sax.get_fitted_params")
-        #print(self.sax.get_fitted_params())
 
         print(f"dataset.shape: {dataset.shape}")
         samples = self.getEntity(dataset.shape[0], 'sample')
@@ -499,13 +237,7 @@ class SAXTransformer:
         plt.show()
     
 class tsfreshTransformer:
-    """ 
-    def __init__(self, n_segments=8, alphabet_size=4):
-        self.n_segments = n_segments
-        self.alphabet_size = alphabet_size
-        self.sax = SAX(self.n_segments, self.alphabet_size)
- """
-    ### TODO: Delete later, after running everything once
+    
     @staticmethod
     def fit_scaler(dataset):
         scaler = StandardScaler()
@@ -561,29 +293,16 @@ class tsfreshTransformer:
 
         print("X.shape:")
         print(X.shape)
-
-        # old version; moved normalization into apply_net
-        # X_normalized = scaler.transform(X)
         
         X_normalized = X.to_numpy()
         
         # Convert the pd to a tensor, add an inner dimension
         return torch.tensor(X_normalized, dtype=torch.float32).unsqueeze(1), columns, scaler
-        # return torch.tensor(X_filtered.to_numpy(), dtype=torch.float32).unsqueeze(1), filtered_columns
 
 class vqshapeTransformer:
     def __init__(self, model_to_use):
-        ### TODO: Correct optional parameter. For gridsearch to work correctly, 
-        # args.model_to_use has to be used
 
         ### Loading Checkpoint
-        # First: Manually creates, Second: Best with least parameter, Third: Best 
-        checkpoints = ('uea_dim512_codebook64_m', 'uea_dim256_codebook512', 'uea_dim512_codebook64')
-        # print("checkpoints")
-        # print(checkpoints)
-        # print("model_to_use")
-        # print(model_to_use)
-
         dims = (512, 256, 512)
         codes = (64, 512, 64)
         self.dim = dims[model_to_use]
@@ -592,24 +311,15 @@ class vqshapeTransformer:
         self.code = codes[model_to_use]
         checkpoint = f"uea_dim{self.dim}_codebook{self.code}"
 
-        # checkpoint_path = f"VQShape/checkpoints/vqshape_pretrain/{checkpoints[model_to_use]}/VQShape.ckpt"
         checkpoint_path = f"VQShape/checkpoints/vqshape_pretrain/{checkpoint}/VQShape.ckpt"
         lit_model = LitVQShape.load_from_checkpoint(checkpoint_path, 'cuda')
         self.model = lit_model.model
 
     def transform(self, dataset, mode = "tokenize"):
-    # def transform(dataset, y, columns=None, scaler=None, setting="min", filter=True):
-        # x = torch.randn(16, 5, 1000).to(device='cuda')  # 16 multivariate time-series, each with 5 channels and 1000 timesteps
-        
-        # mode = 'tokenize'
-        # 'tokenize', 'evaluate'
 
         x = torch.tensor(dataset, device='cuda', dtype=torch.float32)
         print("x.size()")
         print(x.size())
-
-        ### Loading model:
-        # model = LitVQShape.load_from_checkpoint(self.checkpoint_path, 'cuda').model
 
         # F.interpolate requires dimensions (batch, channels, time/height/width)
         x = x.unsqueeze(1)
@@ -617,40 +327,19 @@ class vqshapeTransformer:
         print("Before inputting into model:") 
         print("x.size()")
         print(x.size())
-        ### TODO: Plot time series here, just to be sure
         x = x.squeeze(1)
         print(x.size())
-        # transform to univariate time-series, our ts are already univariate
-        # x = rearrange(x, 'b c t -> (b c) t')  
-
-        # TODO: Uncomment the old version; currently testing with histogram
-        # output = self.model(x, mode='tokenize')[0]['token'] # tokenize with VQShape
 
         if mode == 'evaluate':
             output_dict, loss_dict = self.model(x, mode='evaluate')
-            # print("output")
-            # print(output_dict.keys())
-            # print(output_dict.items())
-
-            # print(loss_dict.keys())
-            # print(loss_dict.items())
             return output_dict, loss_dict
 
         elif mode == 'tokenize':
 
             output = self.model(x, mode='tokenize')[0] # tokenize with VQShape
-            # print("output['token'][0]")
-            # print(output['token'][0])
-            # print(output['token'].size())
-
-            # print("output['histogram'][0]")
-            # print(output['histogram'][0])
-            # print(output['histogram'].size())
         
             histogramm = output['histogram'] 
-            hist_of_hist = torch.sum(histogramm, 0) 
-            # print("hist_of_hist")
-            # print(hist_of_hist)
+            hist_of_hist = torch.sum(histogramm, 0)
 
             histogramm = histogramm.unsqueeze(1)
             return histogramm
@@ -665,24 +354,19 @@ class NeSyConceptLearner(nn.Module):
     """
     The Neuro-Symbolic Concept Learner of Stammer et al. 2021 based on Slot Attention and Set Transformer.
     """
+    
     def __init__(self, n_input_dim, n_set_heads, set_transf_hidden, n_classes = 2,
-                 device='cuda'):
-        """ 
-        For BCEWithLogitsLoss n_classes is 1, as network should have a binary output, either defect or not
-        Note: set_transf_hidden % n_set_heads == 0 has to true!
-
-        #old version
-    def __init__(self, n_classes, n_slots=1, n_iters=3, n_attr=18, n_set_heads=4, set_transf_hidden=128,
-                 category_ids=[3, 6, 8, 10, 17], device='cuda'): """
+                 device='cuda'):       
         """
         :param n_classes: Integer, number of classes
         :param n_attr: Integer, number of attributes per object
         :param n_set_heads: Integer, number of attention heads for set transformer
         :param set_transf_hidden: Integer, hidden dim of set transformer
         prediction
-        
         :param device: String, either 'cpu' or 'cuda'
+        Note: set_transf_hidden % n_set_heads == 0 has to true!
         """
+        
         super().__init__()
         self.device = device
         self.n_classes = n_classes
@@ -696,45 +380,35 @@ class NeSyConceptLearner(nn.Module):
                                       dim_output=n_classes, ln=True)
 
     def forward(self, attrs):
-        #TODO: modify method comment
         """
-        Receives an image, passes it through the concept embedding module and the reasoning module. For simplicity we
-        here binarize the continuous output of the concept embedding module before passing it to the reasoning module.
+        Receives a concept and passes it through the reasoning module.
         The ouputs of both modules are returned, i.e. the final class prediction and the latent symbolic representation.
-        :param img: 4D Tensor [batch, channels, width, height]
+        :param attrs: 3D Tensor[batch, sets, features]
         :return: Tuple of outputs of both modules, [batch, n_classes] classification/ reasoning module output,
         [batch, n_slots, n_attr] concept embedding module output/ symbolic representation
         """
-        """
-        :param attrs: 3D Tensor[batch, sets, features]
-        """
+
         attrs = attrs.float()
         cls = self.set_cls(attrs)
         return cls.squeeze(), attrs
 
 
 if __name__ == "__main__":
+    # Used for initial testing of model.
     print("CUDA version used by PyTorch:", torch.version.cuda)
     print("CUDA available:", torch.cuda.is_available())
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    #x = torch.rand(20, 3, 128, 128).to(device)
     dataset, _ = load_unit_test()
 
     n_segments = 6
     alphabet_size = 4
 
     sax_aeon = SAXTransformer(n_segments=n_segments, alphabet_size=alphabet_size)
-    #dataset_sax, dataset, dataset_scaled = sax_aeon.transform(dataset)
-    #sax_aeon.drawGrid(dataset, dataset_scaled, dataset_sax, dataset_name="unit_test") #rows=2, columns=4
 
     x, _, _ = sax_aeon.transform(dataset)
-    
-    #n_classes is 2, as there are two possible outcomes for a sample, either defect or not 
-
     net = NeSyConceptLearner(n_input_dim = n_segments)
-    #net = NeSyConceptLearner(n_classes=2, n_attr=6, n_set_heads=4, set_transf_hidden=128,
-    #                         device=device).to(device)
+
     output = net(x)
     print(output)
 
