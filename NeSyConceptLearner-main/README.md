@@ -1,4 +1,4 @@
-# Neuro Symbolic Concpet Learner based on Slot Attention and Set Transformer
+# Neuro Symbolic Concept Learner based on Slot Attention and Set Transformer
 
 This is the official repository for the Neuro-Symbolic Concept Learner introduced in 
 [Right for the Right Concept: Revising Neuro-Symbolic Concepts by Interacting 
